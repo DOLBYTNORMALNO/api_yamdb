@@ -1,7 +1,17 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-User = get_user_model()
+class CustomUser(AbstractUser):
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+    ROLE_CHOICES = [
+        (USER, 'User'),
+        (MODERATOR, 'Moderator'),
+        (ADMIN, 'Admin'),
+    ]
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=USER)
+    confirmation_code = models.CharField(max_length=10, blank=True, null=True)
 
 
 class Category(models.Model):
