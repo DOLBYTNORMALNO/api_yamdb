@@ -21,6 +21,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'api',
+    'djoser',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -94,6 +97,21 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+
+DJOSER = {
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.CustomUserSerializer',
+    },
+    'PERMISSIONS': {
+        'user_list': ['api.permissions.IsAdmin'],
+        'user': ['api.permissions.IsAdmin'],
+    },
+}
 
 
 # Static files (CSS, JavaScript, Images)
