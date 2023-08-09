@@ -86,7 +86,7 @@ class Review(models.Model):
 
     def __str__(self) -> str:
         return f'{self.title} {self.text} {self.score}'
-    
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -107,4 +107,4 @@ class Comment(models.Model):
     )
 
     def __str__(self):
-        return f'{self.title} {self.review}'
+        return f'{self.title}'
