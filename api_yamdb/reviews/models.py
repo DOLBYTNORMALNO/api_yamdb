@@ -1,6 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+CHOICES_SCORE = [(i, i) for i in range(1, 11)]
+
+
 class CustomUser(AbstractUser):
     USER = 'user'
     MODERATOR = 'moderator'
@@ -38,7 +41,7 @@ class Genre(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 
 class Title(models.Model):
 
@@ -64,6 +67,44 @@ class GenreTitle(models.Model):
         Genre, on_delete=models.CASCADE)
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE)
-    
+
     def __str__(self):
         return f'{self.genre} {self.title}'
+
+
+class Review(models.Model):
+    user = models.ForeignKey(
+        CustomUser, on_delet=models.CASCADE
+    )
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    text = models.TextField()
+    score = models.IntegerField(choices=CHOICES_SCORE)
+
+    def __str__(self) -> str:
+        return f'{self.title} {self.text} {self.score}'
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'title'],
+                name='unique_user_title'
+            )
+        ]
+
+
+class Comment(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delet=models.CASCADE
+    )
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE,
+        related_name='comments'
+    )
+
+    def __str__(self):
+        return f'{self.title} {self.review}'
