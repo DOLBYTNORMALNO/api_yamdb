@@ -74,7 +74,8 @@ class GenreTitle(models.Model):
 
 class Review(models.Model):
     user = models.ForeignKey(
-        CustomUser, on_delet=models.CASCADE
+        CustomUser,
+        on_delet=models.CASCADE
     )
     title = models.ForeignKey(
         Title,
@@ -83,8 +84,11 @@ class Review(models.Model):
     )
     text = models.TextField()
     score = models.IntegerField(choices=CHOICES_SCORE)
+    pub_date = models.DateTimeField(
+        auto_now_add=True
+    )
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.title} {self.text} {self.score}'
 
     class Meta:
@@ -104,6 +108,10 @@ class Comment(models.Model):
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE,
         related_name='comments'
+    )
+    create = models.DateTimeField(
+        related_namde='data_created',
+        auto_now_add=True,
     )
 
     def __str__(self):
