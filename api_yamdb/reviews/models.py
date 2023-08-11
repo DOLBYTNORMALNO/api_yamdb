@@ -109,7 +109,7 @@ class Comment(models.Model):
         Title, on_delete=models.CASCADE,
         related_name='comments'
     )
-    create = models.DateTimeField(
+    pub_date = models.DateTimeField(
         related_namde='data_created',
         auto_now_add=True,
     )
