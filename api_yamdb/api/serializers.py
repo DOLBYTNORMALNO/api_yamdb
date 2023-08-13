@@ -17,9 +17,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Генерация кода подтверждения
         confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+        validated_data['confirmation_code'] = confirmation_code
         user = super().create(validated_data)
-        user.confirmation_code = confirmation_code
-        user.save()
 
         # Отправка письма с кодом подтверждения
         send_mail(

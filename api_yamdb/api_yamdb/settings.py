@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'api',
+    'reviews',
     'djoser',
     'rest_framework_simplejwt',
 ]
@@ -113,6 +114,7 @@ DJOSER = {
     },
 }
 
+AUTH_USER_MODEL = 'reviews.CustomUser'
 
 # Static files (CSS, JavaScript, Images)
 
