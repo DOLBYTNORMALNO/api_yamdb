@@ -74,7 +74,7 @@ class GenreTitle(models.Model):
 
 class Review(models.Model):
     user = models.ForeignKey(
-        CustomUser, on_delet=models.CASCADE
+        CustomUser, on_delete=models.CASCADE
     )
     title = models.ForeignKey(
         Title,
@@ -99,7 +99,7 @@ class Review(models.Model):
 class Comment(models.Model):
     user = models.ForeignKey(
         CustomUser,
-        on_delet=models.CASCADE
+        on_delete=models.CASCADE
     )
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE,
