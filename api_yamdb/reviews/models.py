@@ -20,7 +20,6 @@ class CustomUser(AbstractUser):
 
 
 class Category(models.Model):
-
     class Meta:
         verbose_name = "category"
         verbose_name_plural = "categories"
@@ -33,7 +32,6 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-
     class Meta:
         verbose_name = "genre"
         verbose_name_plural = "genres"
@@ -46,7 +44,6 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-
     class Meta:
         verbose_name = "title"
         verbose_name_plural = "titles"
@@ -88,9 +85,7 @@ class Review(models.Model):
     text = models.TextField()
     score = models.IntegerField(choices=CHOICES_SCORE)
 
-
     def __str__(self) -> str:
-
         return f'{self.title} {self.text} {self.score}'
 
     class Meta:
