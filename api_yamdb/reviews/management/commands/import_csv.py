@@ -3,7 +3,7 @@ import csv
 from django.conf import settings
 from django.core.management import BaseCommand
 
-from review.models import (Category, Comment, Genre, GenreTitle, Review,
+from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, CustomUser)
 
 #Словарь Модель+Файл.csv в БД 
