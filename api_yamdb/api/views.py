@@ -1,23 +1,41 @@
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from reviews.models import CustomUser
-from .serializers import CustomUserSerializer
 import random
 import string
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from reviews.models import Category, Genre, Title
-from .serializers import CategorySerializer, GenreSerializer, TitleSerializer
-from .permissions import IsAdminOrReadOnly
+from .serializers import CategorySerializer, GenreSerializer, TitleSerializer, CustomUserSerializer
+from .permissions import IsAdminOrReadOnly, IsAdmin
+
+
+class ObtainTokenView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        confirmation_code = request.data.get('confirmation_code')
+        user = get_object_or_404(CustomUser, username=username, confirmation_code=confirmation_code)
+
+        # Создание токена для пользователя
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
+        return Response({'token': access_token}, status=status.HTTP_200_OK)
+
 
 class SignUpView(APIView):
     def post(self, request):
+        username = request.data.get('username')
+        if username == 'me':
+            return Response({'detail': 'Username "me" is reserved.'}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = CustomUserSerializer(data=request.data)
         if serializer.is_valid():
             # Генерация кода подтверждения
@@ -39,15 +57,37 @@ class SignUpView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsAdmin]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
+    lookup_field = 'username'
+
+    @action(detail=False, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(serializer.data)
+        elif request.method == 'PATCH':
+            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
 
+
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
 

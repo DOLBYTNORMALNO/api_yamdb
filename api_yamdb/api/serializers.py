@@ -4,14 +4,23 @@ from reviews.models import CustomUser, Title, Category, Genre
 import random
 import string
 from django.core.mail import send_mail
+from django.core.validators import RegexValidator
+
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        max_length=150,
+        validators=[RegexValidator(r'^[\w.@+-]+\Z')],
+        required=True,
+        allow_blank=False
+    )
+
     class Meta:
         model = CustomUser
-        fields = ('email', 'username', 'role')
+        fields = ('email', 'username', 'role', 'first_name', 'last_name', 'bio')  # Добавлены поля
         extra_kwargs = {
-            'username': {'max_length': 150, 'pattern': r'^[\w.@+-]+\z'},
-            'email': {'max_length': 254},
+            'username': {'max_length': 150, 'required': True, 'allow_blank': False},
+            'email': {'max_length': 254, 'required': True, 'allow_blank': False},
             'role': {'read_only': True}
         }
 
