@@ -9,7 +9,6 @@ from rest_framework.filters import SearchFilter
 
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.relations import SlugRelatedField
 
 from reviews.models import CustomUser
@@ -17,10 +16,17 @@ import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
-
-from reviews.models import Category, Genre, Title
-from .serializers import CategorySerializer, GenreSerializer, TitleSerializer, CustomUserSerializer
+from .serializers import CustomUserSerializer
 from .permissions import IsAdminOrReadOnly, IsAdmin
+
+from reviews.models import Category, Genre, Title, Review
+from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
+    TitleSerializer,
+    CommetSerializer,
+    ReviewSerializer
+)
 
 
 class ObtainTokenView(APIView):
@@ -34,18 +40,6 @@ class ObtainTokenView(APIView):
         access_token = str(refresh.access_token)
 
         return Response({'token': access_token}, status=status.HTTP_200_OK)
-
-
-from reviews.models import Category, Genre, Title, Review
-from .serializers import (
-    CategorySerializer,
-    GenreSerializer,
-    TitleSerializer,
-    CommetSerializer,
-    ReviewSerializer
-)
-from .permissions import IsAdminOrReadOnly
-
 
 
 class SignUpView(APIView):
@@ -143,7 +137,6 @@ class TitleViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
 
 
-
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommetSerializer
 
@@ -161,4 +154,3 @@ class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all
     serializer_class = ReviewSerializer
     author = SlugRelatedField(slug_field='username', read_only=True)
-
