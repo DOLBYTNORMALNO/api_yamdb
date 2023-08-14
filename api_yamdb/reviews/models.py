@@ -13,13 +13,14 @@ class CustomUser(AbstractUser):
         (MODERATOR, 'Moderator'),
         (ADMIN, 'Admin'),
     ]
-    email = models.EmailField(unique=True, max_length=254)
+
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=USER)
     confirmation_code = models.CharField(max_length=10, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
 
 
 class Category(models.Model):
+
     class Meta:
         verbose_name = "category"
         verbose_name_plural = "categories"
@@ -32,6 +33,7 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
+
     class Meta:
         verbose_name = "genre"
         verbose_name_plural = "genres"
@@ -44,6 +46,7 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
+
     class Meta:
         verbose_name = "title"
         verbose_name_plural = "titles"
@@ -73,8 +76,9 @@ class GenreTitle(models.Model):
 
 class Review(models.Model):
     user = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE
+
+        CustomUser, on_delete=models.CASCADE
+
     )
     title = models.ForeignKey(
         Title,
@@ -83,11 +87,10 @@ class Review(models.Model):
     )
     text = models.TextField()
     score = models.IntegerField(choices=CHOICES_SCORE)
-    pub_date = models.DateTimeField(
-        auto_now_add=True
-    )
 
-    def __str__(self):
+
+    def __str__(self) -> str:
+
         return f'{self.title} {self.text} {self.score}'
 
     class Meta:
@@ -107,9 +110,6 @@ class Comment(models.Model):
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE,
         related_name='comments'
-    )
-    create = models.DateTimeField(
-        auto_now_add=True,
     )
 
     def __str__(self):

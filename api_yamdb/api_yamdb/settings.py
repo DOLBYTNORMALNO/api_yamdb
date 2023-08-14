@@ -114,10 +114,13 @@ DJOSER = {
     },
 }
 
-AUTH_USER_MODEL = 'reviews.CustomUser'
+
+
 
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
+
+AUTH_USER_MODEL = 'reviews.CustomUser'
