@@ -6,11 +6,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
+
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.relations import SlugRelatedField
+
 from reviews.models import CustomUser
 import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
+
 
 from reviews.models import Category, Genre, Title
 from .serializers import CategorySerializer, GenreSerializer, TitleSerializer, CustomUserSerializer
@@ -30,6 +36,18 @@ class ObtainTokenView(APIView):
         return Response({'token': access_token}, status=status.HTTP_200_OK)
 
 
+from reviews.models import Category, Genre, Title, Review
+from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
+    TitleSerializer,
+    CommetSerializer,
+    ReviewSerializer
+)
+from .permissions import IsAdminOrReadOnly
+
+
+
 class SignUpView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -39,10 +57,13 @@ class SignUpView(APIView):
         serializer = CustomUserSerializer(data=request.data)
         if serializer.is_valid():
             # Генерация кода подтверждения
-            confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-
+            confirmation_code = ''.join(
+                random.choices(string.ascii_letters + string.digits, k=10)
+            )
             # Сохранение пользователя с ролью "user" и кодом подтверждения
-            user = serializer.save(role=CustomUser.USER, confirmation_code=confirmation_code)
+            user = serializer.save(
+                role=CustomUser.USER, confirmation_code=confirmation_code
+            )
 
             # Отправка письма с кодом подтверждения
             send_mail(
@@ -120,3 +141,24 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         self.perform_create(serializer)
+
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommetSerializer
+
+    def get_queryset(self):
+        title_id = self.kwargs.get('title_id')
+        new_queryset = get_object_or_404(Review, title_id=title_id).comments.all()
+        return new_queryset
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get('title_id')
+        serializer.save(author=self.request.user, title_id=title_id)
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all
+    serializer_class = ReviewSerializer
+    author = SlugRelatedField(slug_field='username', read_only=True)
+
