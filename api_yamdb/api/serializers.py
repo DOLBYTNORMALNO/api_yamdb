@@ -1,9 +1,10 @@
 from django.db.models import Avg
 from rest_framework import serializers
-from reviews.models import CustomUser, Title, Category, Genre
+from reviews.models import CustomUser, Title, Category, Genre, Review, Comment
 import random
 import string
 from django.core.mail import send_mail
+
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,3 +63,23 @@ class TitleSerializer(serializers.ModelSerializer):
             return rating
         return round(rating, 1)
 
+
+class ReviewSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ('id', 'user', 'title', 'score')
+        model = Review
+
+    def validate_score(self, value):
+        if value < 1 or value > 10:
+            raise serializers.ValidationError(
+                'Допустимое значение рейтинга от 1 до 10'
+            )
+        return value
+
+
+class CommetSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ('id', 'user', 'title')
+        model = Comment
