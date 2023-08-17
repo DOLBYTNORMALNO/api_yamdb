@@ -1,23 +1,21 @@
 from django.core.mail import send_mail
-
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
-from rest_framework.filters import SearchFilter
 
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 
 from rest_framework.relations import SlugRelatedField
 
-from reviews.models import CustomUser
+from reviews.models import User
 import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import CustomUserSerializer
+from .serializers import UserSerializer
 from .permissions import IsAdminOrReadOnly, IsAdmin
 
 from reviews.models import Category, Genre, Title, Review
@@ -34,7 +32,7 @@ class ObtainTokenView(APIView):
     def post(self, request):
         username = request.data.get('username')
         confirmation_code = request.data.get('confirmation_code')
-        user = get_object_or_404(CustomUser, username=username, confirmation_code=confirmation_code)
+        user = get_object_or_404(User, username=username, confirmation_code=confirmation_code)
 
         # Создание токена для пользователя
         refresh = RefreshToken.for_user(user)
@@ -49,7 +47,7 @@ class SignUpView(APIView):
         if username == 'me':
             return Response({'detail': 'Username "me" is reserved.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = CustomUserSerializer(data=request.data)
+        serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             # Генерация кода подтверждения
             confirmation_code = ''.join(
@@ -57,7 +55,7 @@ class SignUpView(APIView):
             )
             # Сохранение пользователя с ролью "user" и кодом подтверждения
             user = serializer.save(
-                role=CustomUser.USER, confirmation_code=confirmation_code
+                role=User.USER, confirmation_code=confirmation_code
             )
 
             # Отправка письма с кодом подтверждения
@@ -74,8 +72,8 @@ class SignUpView(APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
     permission_classes = [IsAdmin]
     filter_backends = [filters.SearchFilter]
     search_fields = ['username']
@@ -94,17 +92,10 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
-
-
-class GenreViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Genre.objects.all()
-    serializer_class = GenreSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
-    filter_backends = (SearchFilter,)
+    filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
     @action(
@@ -112,10 +103,29 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
         url_path=r'(?P<slug>\w+)',
         lookup_field='slug', url_name='category_slug'
     )
-    def get_genre(self, request, slug):
+    def get_category(self, request, slug):
         category = self.get_object()
         serializer = CategorySerializer(category)
         category.delete()
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    lookup_field = 'slug'
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+
+    @action(
+    detail=False, methods=['delete'],
+    url_path=r'(?P<slug>\w+)',
+    lookup_field='slug', url_name='genre_slug'
+    )
+    def get_genre(self, request, slug):
+        genre = self.get_object()
+        serializer = GenreSerializer(genre)
+        genre.delete()
         return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
 
@@ -123,7 +133,6 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
     serializer_class = TitleSerializer
-    permission_classes = [IsAdminOrReadOnly]
 
     def perform_create(self, serializer):
         category = get_object_or_404(
