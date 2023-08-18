@@ -17,13 +17,13 @@ class CustomUser(AbstractUser):
     confirmation_code = models.CharField(max_length=10, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['id'], name='unique_customuser_id')
+        ]
+
 
 class Category(models.Model):
-
-    class Meta:
-        verbose_name = "category"
-        verbose_name_plural = "categories"
-
     name = models.CharField(max_length=20)
     slug = models.SlugField(unique=True)
 
@@ -32,32 +32,27 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
+    name = models.CharField(max_length=20)
+    slug = models.SlugField(unique=True)
 
     class Meta:
         verbose_name = "genre"
         verbose_name_plural = "genres"
-
-    name = models.CharField(max_length=20)
-    slug = models.SlugField(unique=True)
 
     def __str__(self):
         return self.name
 
 
 class Title(models.Model):
+    name = models.CharField(max_length=16)
+    year = models.IntegerField()
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE,
+        related_name='titles', blank=True)
 
     class Meta:
         verbose_name = "title"
         verbose_name_plural = "titles"
-
-    name = models.CharField(max_length=16)
-    year = models.IntegerField()
-    description = models.TextField()
-    genres = models.ManyToManyField(
-        Genre, through='GenreTitle')
-    category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL,
-        related_name='titles', blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -65,25 +60,32 @@ class Title(models.Model):
 
 class GenreTitle(models.Model):
     genre = models.ForeignKey(
-        Genre, on_delete=models.CASCADE)
+        Genre,
+        on_delete=models.CASCADE
+    )
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE)
+        Title,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f'{self.genre} {self.title}'
 
 
 class Review(models.Model):
-    user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE
-    )
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
         related_name='reviews'
     )
     text = models.TextField()
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
     score = models.IntegerField(choices=CHOICES_SCORE)
+    pub_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
         return f'{self.title} {self.text} {self.score}'
@@ -91,21 +93,25 @@ class Review(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'title'],
-                name='unique_user_title'
+                fields=['author', 'title'],
+                name='unique_author_title'
             )
         ]
 
 
 class Comment(models.Model):
-    user = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE
-    )
-    title = models.ForeignKey(
-        Title, on_delete=models.CASCADE,
+    review = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
         related_name='comments'
     )
+    text = models.TextField()
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    pub_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.title}'

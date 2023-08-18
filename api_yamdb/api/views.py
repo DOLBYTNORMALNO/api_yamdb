@@ -21,7 +21,7 @@ from .serializers import (
     CommetSerializer,
     ReviewSerializer
 )
-from .permissions import IsAdminOrReadOnly
+# from .permissions import IsAdminOrReadOnly
 
 
 class SignUpView(APIView):
@@ -53,13 +53,13 @@ class SignUpView(APIView):
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
+    # permission_classes = [IsAdminOrReadOnly]
 
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly)
+    # permission_classes = (IsAuthenticatedOrReadOnly)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
 
@@ -79,7 +79,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
     serializer_class = TitleSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    # permission_classes = [IsAdminOrReadOnly]
 
     def perform_create(self, serializer):
         category = get_object_or_404(
@@ -96,6 +96,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommetSerializer
+    author = SlugRelatedField(slug_field='username', read_only=True)
 
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')

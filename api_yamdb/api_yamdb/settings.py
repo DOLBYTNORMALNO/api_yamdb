@@ -103,7 +103,6 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-
 DJOSER = {
     'SERIALIZERS': {
         'user_create': 'api.serializers.CustomUserSerializer',

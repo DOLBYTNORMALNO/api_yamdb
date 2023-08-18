@@ -6,7 +6,7 @@ from django.core.management import BaseCommand
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, CustomUser)
 
-#Словарь Модель+Файл.csv в БД 
+
 TABLES_DICT = {
     CustomUser: 'users.csv',
     Category: 'category.csv',
@@ -19,7 +19,6 @@ TABLES_DICT = {
 
 
 class Command(BaseCommand):
-    #Загрузка данных
     help = 'Load data from csv files'
 
     def handle(self, *args, **kwargs):
