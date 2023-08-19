@@ -67,7 +67,12 @@ class SignUpView(APIView):
                 fail_silently=False,
             )
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            # Возвращаем только email и username
+            data = {
+                'email': serializer.data['email'],
+                'username': serializer.data['username']
+            }
+            return Response(data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

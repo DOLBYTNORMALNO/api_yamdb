@@ -85,21 +85,14 @@ class TitleSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
-
     def create(self, validated_data):
-        if 'genres' not in self.initial_data:
-            title = Title.objects.create(**validated_data)
-            return title
-        else:
-            genres = validated_data.pop('genres')
-            title = Title.objects.create(**validated_data)
-            for genre in genres:
-                current_genre, status = Genre.objects.get_or_create(
-                    **genre)
-                GenreTitle.objects.create(
-                    genre=current_genre, title=title)
-            return title
-        
+        genres_data = validated_data.pop('genres', [])
+        title = Title.objects.create(**validated_data)
+        for genre_data in genres_data:
+            genre = Genre.objects.get(**genre_data)
+            title.genres.add(genre)
+        return title
+
     def get_rating(self, obj):
         rating = obj.reviews.aggregate(Avg('score')).get('score__avg')
         if not rating:
