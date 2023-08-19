@@ -4,7 +4,7 @@ from django.db import models
 CHOICES_SCORE = [(i, i) for i in range(1, 11)]
 
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     USER = 'user'
     MODERATOR = 'moderator'
     ADMIN = 'admin'
@@ -27,8 +27,12 @@ class Category(models.Model):
     name = models.CharField(max_length=20)
     slug = models.SlugField(unique=True)
 
+    class Meta:
+        verbose_name = 'category'
+        verbose_name_plural = 'categories'
+
     def __str__(self):
-        return self.name
+        return f'{self.name}'
 
 
 class Genre(models.Model):
@@ -48,7 +52,7 @@ class Title(models.Model):
         verbose_name = "title"
         verbose_name_plural = "titles"
 
-    name = models.CharField(max_length=16)
+    name = models.CharField(max_length=255)
     year = models.IntegerField()
     description = models.TextField()
     genres = models.ManyToManyField(
@@ -74,7 +78,7 @@ class GenreTitle(models.Model):
 class Review(models.Model):
     user = models.ForeignKey(
 
-        CustomUser, on_delete=models.CASCADE
+        User, on_delete=models.CASCADE
 
     )
     title = models.ForeignKey(
@@ -84,6 +88,7 @@ class Review(models.Model):
     )
     text = models.TextField()
     score = models.IntegerField(choices=CHOICES_SCORE)
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     def __str__(self) -> str:
         return f'{self.title} {self.text} {self.score}'
@@ -98,14 +103,17 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
-    user = models.ForeignKey(
-        CustomUser,
+    author = models.ForeignKey(
+        User,
         on_delete=models.CASCADE
     )
-    title = models.ForeignKey(
-        Title, on_delete=models.CASCADE,
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE,
         related_name='comments'
     )
+    text = models.TextField()
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+
 
     def __str__(self):
-        return f'{self.title}'
+        return f'{self.text}'

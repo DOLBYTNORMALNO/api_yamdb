@@ -11,7 +11,6 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return request.user.is_authenticated and request.user.role == 'admin'
 
 
-
 class IsAdmin(permissions.BasePermission):
     """
     Разрешение только для администратора.
