@@ -36,13 +36,13 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
 
         # Отправка письма с кодом подтверждения
-        send_mail(
-            'Подтверждение регистрации',
-            f'Ваш код подтверждения: {confirmation_code}',
-            'noreply@yamdb.com',
-            [user.email],
-            fail_silently=False,
-        )
+#        send_mail(
+#            'Подтверждение регистрации',
+#            f'Ваш код подтверждения: {confirmation_code}',
+#            'noreply@yamdb.com',
+#            [user.email],
+#            fail_silently=False,
+#        )
         return user
 
 
@@ -60,22 +60,6 @@ class GenreSerializer(serializers.ModelSerializer):
         model = Genre
 
 
-#class TitleSerializer(serializers.ModelSerializer):
-#    category = CategorySerializer()
-#    genre = GenreSerializer(many=True)
-#    rating = serializers.FloatField(read_only=True)
-#
-#    class Meta:
-#        fields = '__all__'
-#        model = Title
-#
-#    def get_rating(self, obj):
-#        rating = obj.reviews.aggregate(Avg('score')).get('score__avg')
-#        if not rating:
-#            return rating
-#        return round(rating, 1)
-
-
 class TitleSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
     genres = GenreSerializer(many=True, required=False)
@@ -85,13 +69,20 @@ class TitleSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
+
     def create(self, validated_data):
-        genres_data = validated_data.pop('genres', [])
-        title = Title.objects.create(**validated_data)
-        for genre_data in genres_data:
-            genre = Genre.objects.get(**genre_data)
-            title.genres.add(genre)
-        return title
+        if 'genres' not in self.initial_data:
+            title = Title.objects.create(**validated_data)
+            return title
+        else:
+            genres = validated_data.pop('genres')
+            title = Title.objects.create(**validated_data)
+            for genre in genres:
+                current_genre, status = Genre.objects.get_or_create(
+                    **genre)
+                GenreTitle.objects.create(
+                    genre=current_genre, title=title)
+            return title
 
     def get_rating(self, obj):
         rating = obj.reviews.aggregate(Avg('score')).get('score__avg')
