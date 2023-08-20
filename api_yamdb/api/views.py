@@ -44,7 +44,33 @@ class ObtainTokenView(APIView):
 
 class SignUpView(APIView):
     def post(self, request):
+        email = request.data.get('email')
         username = request.data.get('username')
+
+        # Проверка на имя пользователя "me"
+        if username == "me":
+            return Response({'detail': 'Username "me" is restricted.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Проверка на уникальность email
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            user.confirmation_code = confirmation_code
+            user.save()
+            send_mail(
+                'Подтверждение регистрации',
+                f'Ваш код подтверждения: {confirmation_code}',
+                'noreply@yamdb.com',
+                [user.email],
+                fail_silently=False,
+            )
+            data = {
+                'email': email,
+                'username': user.username
+            }
+            return Response(data, status=status.HTTP_200_OK)
+
+        # Проверка на уникальность имени пользователя
         if User.objects.filter(username=username).exists():
             return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -75,6 +101,7 @@ class SignUpView(APIView):
             }
             return Response(data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -188,6 +215,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         else:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
         return super(ReviewViewSet, self).get_permissions()
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get('title_id')
+        # Проверка на наличие соответствующего заголовка
+        if not Title.objects.filter(id=title_id).exists():
+            return Response({"detail": "Title with the given ID does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save(author=self.request.user, title_id=title_id)
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
