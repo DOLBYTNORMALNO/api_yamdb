@@ -35,14 +35,6 @@ class UserSerializer(serializers.ModelSerializer):
         user.confirmation_code = confirmation_code
         user.save()
 
-        # Отправка письма с кодом подтверждения
-#        send_mail(
-#            'Подтверждение регистрации',
-#            f'Ваш код подтверждения: {confirmation_code}',
-#            'noreply@yamdb.com',
-#            [user.email],
-#            fail_silently=False,
-#        )
         return user
 
 
@@ -61,28 +53,20 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()
-    genres = GenreSerializer(many=True, required=False)
+    category = serializers.SlugRelatedField(slug_field='slug', queryset=Category.objects.all())
+    genres = serializers.SlugRelatedField(slug_field='slug', many=True, queryset=Genre.objects.all())
     rating = serializers.FloatField(read_only=True)
-    
+
     class Meta:
         model = Title
         fields = '__all__'
 
-
     def create(self, validated_data):
-        if 'genres' not in self.initial_data:
-            title = Title.objects.create(**validated_data)
-            return title
-        else:
-            genres = validated_data.pop('genres')
-            title = Title.objects.create(**validated_data)
-            for genre in genres:
-                current_genre, status = Genre.objects.get_or_create(
-                    **genre)
-                GenreTitle.objects.create(
-                    genre=current_genre, title=title)
-            return title
+        genres_data = validated_data.pop('genres')
+        title = Title.objects.create(**validated_data)
+        for genre_data in genres_data:
+            GenreTitle.objects.create(genre=genre_data, title=title)
+        return title
 
     def get_rating(self, obj):
         rating = obj.reviews.aggregate(Avg('score')).get('score__avg')

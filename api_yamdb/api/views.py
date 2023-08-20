@@ -5,6 +5,7 @@ from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
+from django.http import Http404
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 
@@ -143,13 +144,17 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
 
     def perform_create(self, serializer):
-        category = get_object_or_404(
-            Category, slug=self.request.data.get('category')
-        )
-        genre = Genre.objects.filter(
-            slug__in=self.request.data.getlist('genre')
-        )
-        serializer.save(category=category, genre=genre)
+        try:
+            category = Category.objects.get(slug=self.request.data.get('category'))
+        except Category.DoesNotExist:
+            raise serializers.ValidationError({"category": "Category with provided slug does not exist."})
+
+        genres = Genre.objects.filter(slug__in=self.request.data.getlist('genre'))
+        if not genres.exists():
+            raise serializers.ValidationError({"genre": "One or more genres with provided slugs do not exist."})
+
+        title = serializer.save(category=category)
+        title.genres.set(genres)
 
     def perform_update(self, serializer):
         self.perform_create(serializer)

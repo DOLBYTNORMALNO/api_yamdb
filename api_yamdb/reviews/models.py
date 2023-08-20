@@ -55,7 +55,7 @@ class Title(models.Model):
         verbose_name = "title"
         verbose_name_plural = "titles"
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=256)
     year = models.IntegerField()
     description = models.TextField()
     genres = models.ManyToManyField(
