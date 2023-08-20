@@ -17,6 +17,8 @@ class UserSerializer(serializers.ModelSerializer):
         allow_blank=False
     )
 
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default=User.USER)
+
     class Meta:
         model = User
         fields = ('email', 'username', 'role', 'first_name', 'last_name', 'bio')  # Добавлены поля
