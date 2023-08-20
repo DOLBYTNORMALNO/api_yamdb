@@ -11,20 +11,20 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, I
 
 from rest_framework.relations import SlugRelatedField
 
-from reviews.models import User
+from reviews.models import User, Review, Comment
 import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import UserSerializer
-from .permissions import IsAdminOrReadOnly, IsAdmin
+from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrAdmin
 
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     CategorySerializer,
     GenreSerializer,
     TitleSerializer,
-    CommetSerializer,
+    CommentSerializer,
     ReviewSerializer
 )
 
@@ -160,21 +160,25 @@ class TitleViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
 
 
-class CommentViewSet(viewsets.ModelViewSet):
-    serializer_class = CommetSerializer
-
-    def get_queryset(self):
-        title_id = self.kwargs.get('title_id')
-        new_queryset = get_object_or_404(Review, title_id=title_id).comments.all()
-        return new_queryset
-
-    def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        serializer.save(author=self.request.user, title_id=title_id)
-
-
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all
+    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    author = SlugRelatedField(slug_field='username', read_only=True)
+
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            self.permission_classes = [IsAuthorOrModeratorOrAdmin]
+        else:
+            self.permission_classes = [IsAuthenticatedOrReadOnly]
+        return super(ReviewViewSet, self).get_permissions()
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            self.permission_classes = [IsAuthorOrModeratorOrAdmin]
+        else:
+            self.permission_classes = [IsAuthenticatedOrReadOnly]
+        return super(CommentViewSet, self).get_permissions()
 

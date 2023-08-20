@@ -88,7 +88,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return value
 
 
-class CommetSerializer(serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ('id', 'user', 'title')
