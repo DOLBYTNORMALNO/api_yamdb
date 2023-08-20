@@ -45,8 +45,8 @@ class ObtainTokenView(APIView):
 class SignUpView(APIView):
     def post(self, request):
         username = request.data.get('username')
-        if username == 'me':
-            return Response({'detail': 'Username "me" is reserved.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -97,8 +97,17 @@ class UserViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def create(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        return super(UserViewSet, self).create(request, *args, **kwargs)
+
     def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        username = request.data.get('username')
+        if username and User.objects.filter(username=username).exclude(pk=self.get_object().pk).exists():
+            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        return super(UserViewSet, self).update(request, *args, **kwargs)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -106,6 +115,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    permission_classes = [IsAdminOrReadOnly]
 
     @action(
         detail=False, methods=['delete'],
@@ -125,6 +135,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     lookup_field = 'slug'
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    permission_classes = [IsAdminOrReadOnly]
 
     @action(
     detail=False, methods=['delete'],
@@ -142,6 +153,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
     serializer_class = TitleSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
     def perform_create(self, serializer):
         try:
