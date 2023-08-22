@@ -76,10 +76,11 @@ class TitleSerializer(serializers.ModelSerializer):
             return rating
         return round(rating, 1)
 
+
 class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = ('id', 'user', 'title', 'score')
+        fields = ('id', 'author', 'title', 'score')  # Изменено 'user' на 'author'
         model = Review
 
     def validate_score(self, value):
@@ -89,10 +90,8 @@ class ReviewSerializer(serializers.ModelSerializer):
             )
         return value
 
-
 class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = ('id', 'user', 'title')
+        fields = ('id', 'author', 'title')  # Изменено 'user' на 'author'
         model = Comment
-

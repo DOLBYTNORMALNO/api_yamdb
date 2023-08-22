@@ -103,7 +103,6 @@ class SignUpView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -114,6 +113,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
     def me(self, request):
+        if 'role' in request.data:
+            return Response({'detail': 'Changing role is not allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+
         if request.method == 'GET':
             serializer = self.get_serializer(request.user)
             return Response(serializer.data)
@@ -137,10 +139,19 @@ class UserViewSet(viewsets.ModelViewSet):
         return super(UserViewSet, self).create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        username = request.data.get('username')
-        if username and User.objects.filter(username=username).exclude(pk=self.get_object().pk).exists():
-            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-        return super(UserViewSet, self).update(request, *args, **kwargs)
+        return Response({'detail': 'Method not allowed.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -171,9 +182,9 @@ class GenreViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
 
     @action(
-    detail=False, methods=['delete'],
-    url_path=r'(?P<slug>\w+)',
-    lookup_field='slug', url_name='genre_slug'
+        detail=False, methods=['delete'],
+        url_path=r'(?P<slug>\w+)',
+        lookup_field='slug', url_name='genre_slug'
     )
     def get_genre(self, request, slug):
         genre = self.get_object()
@@ -219,10 +230,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         title_id = self.kwargs.get('title_id')
         # Проверка на наличие соответствующего заголовка
-        if not Title.objects.filter(id=title_id).exists():
-            return Response({"detail": "Title with the given ID does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+        title_exists = Title.objects.filter(id=title_id).exists()
+        if not title_exists:
+            # Если заголовка нет, добавляем ошибку в serializer, но не прерываем выполнение
+            serializer._errors = {"title_id": ["Title with the given ID does not exist."]}
+        else:
+            serializer.save(author=self.request.user, title_id=title_id)
 
-        serializer.save(author=self.request.user, title_id=title_id)
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
@@ -234,4 +248,3 @@ class CommentViewSet(viewsets.ModelViewSet):
         else:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
         return super(CommentViewSet, self).get_permissions()
-
