@@ -75,7 +75,7 @@ class GenreTitle(models.Model):
 
 
 class Review(models.Model):
-    user = models.ForeignKey(
+    author = models.ForeignKey(
 
         User, on_delete=models.CASCADE
 
@@ -95,7 +95,7 @@ class Review(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'title'],
+                fields=['author', 'title'],
                 name='unique_user_title'
             )
         ]

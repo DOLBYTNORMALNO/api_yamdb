@@ -1,4 +1,3 @@
-
 from django.db.models import Avg
 from rest_framework import serializers
 from reviews.models import User, Title, Category, Genre, GenreTitle, Review, Comment
@@ -79,7 +78,7 @@ class TitleSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = ('id', 'user', 'title', 'score')
+        fields = ('id', 'author', 'title', 'score', 'pub_date')
         model = Review
 
     def validate_score(self, value):
@@ -95,4 +94,3 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'user', 'title')
         model = Comment
-
