@@ -4,11 +4,11 @@ from django.conf import settings
 from django.core.management import BaseCommand
 
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
-                            Title, User)
+                            Title, CustomUser)
 
 #Словарь Модель+Файл.csv в БД 
 TABLES_DICT = {
-    User: 'users.csv',
+    CustomUser: 'users.csv',
     Category: 'category.csv',
     Genre: 'genre.csv',
     Title: 'titles.csv',
