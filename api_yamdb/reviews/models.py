@@ -4,7 +4,7 @@ from django.db import models
 CHOICES_SCORE = [(i, i) for i in range(1, 11)]
 
 
-class User(AbstractUser):
+class CustomUser(AbstractUser):
     USER = 'user'
     MODERATOR = 'moderator'
     ADMIN = 'admin'
@@ -75,7 +75,7 @@ class GenreTitle(models.Model):
 
 
 class Review(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
 
     title = models.ForeignKey(
         Title,
@@ -100,7 +100,7 @@ class Review(models.Model):
 
 class Comment(models.Model):
     author = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE
     )
     review = models.ForeignKey(

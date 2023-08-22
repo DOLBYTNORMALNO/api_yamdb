@@ -1,7 +1,7 @@
 
 from django.db.models import Avg
 from rest_framework import serializers
-from reviews.models import User, Title, Category, Genre, GenreTitle, Review, Comment
+from reviews.models import CustomUser, Title, Category, Genre, GenreTitle, Review, Comment
 import random
 import string
 from django.core.mail import send_mail
@@ -17,10 +17,10 @@ class UserSerializer(serializers.ModelSerializer):
         allow_blank=False
     )
 
-    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default=User.USER)
+    role = serializers.ChoiceField(choices=CustomUser.ROLE_CHOICES, default=CustomUser.USER)
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = ('email', 'username', 'role', 'first_name', 'last_name', 'bio')  # Добавлены поля
         extra_kwargs = {
             'username': {'max_length': 150, 'required': True, 'allow_blank': False},

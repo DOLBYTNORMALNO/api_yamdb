@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, I
 
 from rest_framework.relations import SlugRelatedField
 
-from reviews.models import User, Review, Comment
+from reviews.models import CustomUser, Review, Comment
 import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -33,7 +33,7 @@ class ObtainTokenView(APIView):
     def post(self, request):
         username = request.data.get('username')
         confirmation_code = request.data.get('confirmation_code')
-        user = get_object_or_404(User, username=username, confirmation_code=confirmation_code)
+        user = get_object_or_404(CustomUser, username=username, confirmation_code=confirmation_code)
 
         # Создание токена для пользователя
         refresh = RefreshToken.for_user(user)
@@ -52,8 +52,8 @@ class SignUpView(APIView):
             return Response({'detail': 'Username "me" is restricted.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Проверка на уникальность email
-        if User.objects.filter(email=email).exists():
-            user = User.objects.get(email=email)
+        if CustomUser.objects.filter(email=email).exists():
+            user = CustomUser.objects.get(email=email)
             confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
             user.confirmation_code = confirmation_code
             user.save()
@@ -71,7 +71,7 @@ class SignUpView(APIView):
             return Response(data, status=status.HTTP_200_OK)
 
         # Проверка на уникальность имени пользователя
-        if User.objects.filter(username=username).exists():
+        if CustomUser.objects.filter(username=username).exists():
             return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSerializer(data=request.data)
@@ -82,7 +82,7 @@ class SignUpView(APIView):
             )
             # Сохранение пользователя с ролью "user" и кодом подтверждения
             user = serializer.save(
-                role=User.USER, confirmation_code=confirmation_code
+                role=CustomUser.USER, confirmation_code=confirmation_code
             )
 
             # Отправка письма с кодом подтверждения
@@ -104,7 +104,7 @@ class SignUpView(APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdmin]
     filter_backends = [filters.SearchFilter]
@@ -130,10 +130,10 @@ class UserViewSet(viewsets.ModelViewSet):
         email = request.data.get('email')
         username = request.data.get('username')
 
-        if User.objects.filter(email=email).exists():
+        if CustomUser.objects.filter(email=email).exists():
             return Response({'detail': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(username=username).exists():
+        if CustomUser.objects.filter(username=username).exists():
             return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
         return super(UserViewSet, self).create(request, *args, **kwargs)
