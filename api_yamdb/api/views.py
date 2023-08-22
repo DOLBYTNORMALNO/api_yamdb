@@ -200,20 +200,24 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
 
     def perform_create(self, serializer):
-        try:
-            category = Category.objects.get(slug=self.request.data.get('category'))
-        except Category.DoesNotExist:
-            raise serializers.ValidationError({"category": "Category with provided slug does not exist."})
+        category_slug = self.request.data.get('category')
+        category = Category.objects.get(slug=category_slug)
 
-        genres = Genre.objects.filter(slug__in=self.request.data.getlist('genre'))
-        if not genres.exists():
-            raise serializers.ValidationError({"genre": "One or more genres with provided slugs do not exist."})
+        genres_slugs = self.request.data.getlist('genre')
+        genres = Genre.objects.filter(slug__in=genres_slugs)
 
         title = serializer.save(category=category)
         title.genres.set(genres)
 
     def perform_update(self, serializer):
-        self.perform_create(serializer)
+        category_slug = self.request.data.get('category')
+        category = Category.objects.get(slug=category_slug)
+
+        genres_slugs = self.request.data.getlist('genre')
+        genres = Genre.objects.filter(slug__in=genres_slugs)
+
+        title = serializer.save(category=category)
+        title.genres.set(genres)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
