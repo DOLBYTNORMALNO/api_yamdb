@@ -4,9 +4,8 @@ from rest_framework import serializers
 from reviews.models import CustomUser, Title, Category, Genre, GenreTitle, Review, Comment
 import random
 import string
-from django.core.mail import send_mail
+from rest_framework.relations import SlugRelatedField
 from django.core.validators import RegexValidator
-
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -78,9 +77,19 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    title = serializers.SlugRelatedField(
+        slug_field='id',
+        queryset=Title.objects.all(),
+        required=False
+    )
+    author = SlugRelatedField(
+        default=serializers.CurrentUserDefault(),
+        read_only=True,
+        slug_field='username'
+    )
 
     class Meta:
-        fields = ('id', 'author', 'title', 'score')  # Изменено 'user' на 'author'
+        fields = ('id', 'author', 'text', 'title', 'score', 'pub_date', )
         model = Review
 
     def validate_score(self, value):
@@ -90,8 +99,15 @@ class ReviewSerializer(serializers.ModelSerializer):
             )
         return value
 
+
 class CommentSerializer(serializers.ModelSerializer):
+    author = SlugRelatedField(
+        default=serializers.CurrentUserDefault(),
+        read_only=True,
+        slug_field='username'
+    )
 
     class Meta:
-        fields = ('id', 'author', 'title')  # Изменено 'user' на 'author'
+        exclude = ('review',)
         model = Comment
+    

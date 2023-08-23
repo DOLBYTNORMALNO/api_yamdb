@@ -26,7 +26,7 @@ routers.register(
     basename='CommentSet'
 )
 routers.register(
-    r'titles/(?P<title_id>\d+)/reviews/',
+    r'titles/(?P<title_id>\d+)/reviews',
     ReviewViewSet,
     basename='ReviewSet'
 )

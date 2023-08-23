@@ -224,9 +224,15 @@ class TitleViewSet(viewsets.ModelViewSet):
         title.genres.set(genres)
 
 
+
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        title_id = int(self.kwargs.get('title_id'))
+        title = get_object_or_404(Title, pk=title_id)
+        return title.reviews.all()
 
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
@@ -240,19 +246,31 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Проверка на наличие соответствующего заголовка
         title_exists = Title.objects.filter(id=title_id).exists()
         if not title_exists:
-            # Если заголовка нет, добавляем ошибку в serializer, но не прерываем выполнение
-            serializer._errors = {"title_id": ["Title with the given ID does not exist."]}
+            serializer._errors = (
+                {"title_id": ["Title with the given ID does not exist."]}
+            )
         else:
             serializer.save(author=self.request.user, title_id=title_id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        review_id = int(self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, id=review_id)
+        return review.comments.all()
 
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
             self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         else:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
+
         return super(CommentViewSet, self).get_permissions()
+
+    def perform_create(self, serializer):
+        review_id = int(self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, id=review_id)
+        user = self.request.user
+        serializer.save(author=user, review=review)
