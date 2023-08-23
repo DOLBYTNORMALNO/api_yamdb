@@ -54,21 +54,25 @@ class SignUpView(APIView):
         # Проверка на уникальность email
         if CustomUser.objects.filter(email=email).exists():
             user = CustomUser.objects.get(email=email)
-            confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-            user.confirmation_code = confirmation_code
-            user.save()
-            send_mail(
-                'Подтверждение регистрации',
-                f'Ваш код подтверждения: {confirmation_code}',
-                'noreply@yamdb.com',
-                [user.email],
-                fail_silently=False,
-            )
-            data = {
-                'email': email,
-                'username': user.username
-            }
-            return Response(data, status=status.HTTP_200_OK)
+            if user.username != username:
+                return Response({'detail': 'Email already exists with a different username.'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Если пользователь с таким email уже существует и создан администратором
+                confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+                user.confirmation_code = confirmation_code
+                user.save()
+                send_mail(
+                    'Подтверждение регистрации',
+                    f'Ваш код подтверждения: {confirmation_code}',
+                    'noreply@yamdb.com',
+                    [user.email],
+                    fail_silently=False,
+                )
+                data = {
+                    'email': email,
+                    'username': user.username
+                }
+                return Response(data, status=status.HTTP_200_OK)
 
         # Проверка на уникальность имени пользователя
         if CustomUser.objects.filter(username=username).exists():
