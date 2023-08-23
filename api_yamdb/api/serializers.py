@@ -1,12 +1,13 @@
 
-from django.db.models import Avg
-from rest_framework import serializers
-from reviews.models import CustomUser, Title, Category, Genre, GenreTitle, Review, Comment
 import random
 import string
-from django.core.mail import send_mail
-from django.core.validators import RegexValidator
 
+from django.core.validators import RegexValidator
+from django.db.models import Avg
+from rest_framework import serializers
+from rest_framework.relations import SlugRelatedField
+from reviews.models import (Category, Comment, CustomUser, Genre, GenreTitle,
+                            Review, Title)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -16,27 +17,43 @@ class UserSerializer(serializers.ModelSerializer):
         required=True,
         allow_blank=False
     )
-
-    role = serializers.ChoiceField(choices=CustomUser.ROLE_CHOICES, default=CustomUser.USER)
+    role = serializers.ChoiceField(
+        choices=CustomUser.ROLE_CHOICES,
+        default=CustomUser.USER
+    )
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'username', 'role', 'first_name', 'last_name', 'bio')  # Добавлены поля
+        fields = (
+            'email',
+            'username',
+            'role',
+            'first_name',
+            'last_name',
+            'bio'
+        )
         extra_kwargs = {
-            'username': {'max_length': 150, 'required': True, 'allow_blank': False},
-            'email': {'max_length': 254, 'required': True, 'allow_blank': False},
-
+            'username': {
+                'max_length': 150,
+                'required': True,
+                'allow_blank': False
+            },
+            'email': {
+                'max_length': 254,
+                'required': True,
+                'allow_blank': False
+            },
             'role': {'read_only': True}
         }
 
     def create(self, validated_data):
         # Генерация кода подтверждения
-        confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-
+        confirmation_code = ''.join(
+            random.choices(string.ascii_letters + string.digits, k=10)
+        )
         user = super().create(validated_data)
         user.confirmation_code = confirmation_code
         user.save()
-
         return user
 
 
@@ -56,7 +73,11 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
-    genres = serializers.SlugRelatedField(slug_field='slug', many=True, queryset=Genre.objects.all())
+    genres = serializers.SlugRelatedField(
+        slug_field='slug',
+        many=True,
+        queryset=Genre.objects.all()
+    )
     rating = serializers.FloatField(read_only=True)
 
     class Meta:
@@ -78,9 +99,19 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    title = serializers.SlugRelatedField(
+        slug_field='id',
+        queryset=Title.objects.all(),
+        required=False
+    )
+    author = SlugRelatedField(
+        default=serializers.CurrentUserDefault(),
+        read_only=True,
+        slug_field='username'
+    )
 
     class Meta:
-        fields = ('id', 'author', 'title', 'score')  # Изменено 'user' на 'author'
+        fields = ('id', 'author', 'text', 'title', 'score', 'pub_date', )
         model = Review
 
     def validate_score(self, value):
@@ -90,8 +121,14 @@ class ReviewSerializer(serializers.ModelSerializer):
             )
         return value
 
+
 class CommentSerializer(serializers.ModelSerializer):
+    author = SlugRelatedField(
+        default=serializers.CurrentUserDefault(),
+        read_only=True,
+        slug_field='username'
+    )
 
     class Meta:
-        fields = ('id', 'author', 'title')  # Изменено 'user' на 'author'
+        exclude = ('review',)
         model = Comment

@@ -1,39 +1,35 @@
+import random
+import string
+
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets, filters
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import action
-from django.http import Http404
-
-from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
-
-from rest_framework.relations import SlugRelatedField
-
-from reviews.models import CustomUser, Review, Comment
-import random
-import string
 from rest_framework_simplejwt.tokens import RefreshToken
+from reviews.models import Category, CustomUser, Genre, Review, Title
 
-from .serializers import UserSerializer
-from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrAdmin
-
-from reviews.models import Category, Genre, Title, Review
-from .serializers import (
-    CategorySerializer,
-    GenreSerializer,
-    TitleSerializer,
-    CommentSerializer,
-    ReviewSerializer
-)
+from .permissions import (IsAdmin, IsAdminOrReadOnly,
+                          IsAuthenticatedOrReadOnly,
+                          IsAuthorOrModeratorOrAdmin)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ReviewSerializer, TitleSerializer,
+                          UserSerializer)
 
 
 class ObtainTokenView(APIView):
     def post(self, request):
         username = request.data.get('username')
         confirmation_code = request.data.get('confirmation_code')
-        user = get_object_or_404(CustomUser, username=username, confirmation_code=confirmation_code)
+        user = get_object_or_404(
+            CustomUser,
+            username=username,
+            confirmation_code=confirmation_code
+        )
 
         # Создание токена для пользователя
         refresh = RefreshToken.for_user(user)
@@ -49,12 +45,17 @@ class SignUpView(APIView):
 
         # Проверка на имя пользователя "me"
         if username == "me":
-            return Response({'detail': 'Username "me" is restricted.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Username "me" is restricted.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Проверка на уникальность email
         if CustomUser.objects.filter(email=email).exists():
             user = CustomUser.objects.get(email=email)
-            confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            confirmation_code = ''.join(
+                random.choices(string.ascii_letters + string.digits, k=10)
+            )
             user.confirmation_code = confirmation_code
             user.save()
             send_mail(
@@ -69,11 +70,12 @@ class SignUpView(APIView):
                 'username': user.username
             }
             return Response(data, status=status.HTTP_200_OK)
-
         # Проверка на уникальность имени пользователя
         if CustomUser.objects.filter(username=username).exists():
-            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response(
+                {'detail': 'Username already exists.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             # Генерация кода подтверждения
@@ -84,7 +86,6 @@ class SignUpView(APIView):
             user = serializer.save(
                 role=CustomUser.USER, confirmation_code=confirmation_code
             )
-
             # Отправка письма с кодом подтверждения
             send_mail(
                 'Подтверждение регистрации',
@@ -111,39 +112,66 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['username']
     lookup_field = 'username'
 
-    @action(detail=False, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=['get', 'patch'],
+        permission_classes=[IsAuthenticated]
+    )
     def me(self, request):
         if 'role' in request.data:
-            return Response({'detail': 'Changing role is not allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Changing role is not allowed.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if request.method == 'GET':
             serializer = self.get_serializer(request.user)
             return Response(serializer.data)
         elif request.method == 'PATCH':
-            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+            serializer = self.get_serializer(
+                request.user,
+                data=request.data,
+                partial=True
+            )
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def create(self, request, *args, **kwargs):
         email = request.data.get('email')
         username = request.data.get('username')
 
         if CustomUser.objects.filter(email=email).exists():
-            return Response({'detail': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Email already exists.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if CustomUser.objects.filter(username=username).exists():
-            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Username already exists.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         return super(UserViewSet, self).create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        return Response({'detail': 'Method not allowed.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response(
+            {'detail': 'Method not allowed.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
@@ -224,6 +252,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
+    def get_queryset(self):
+        title_id = int(self.kwargs.get('title_id'))
+        title = get_object_or_404(Title, pk=title_id)
+        return title.reviews.all()
+
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
             self.permission_classes = [IsAuthorOrModeratorOrAdmin]
@@ -236,15 +269,20 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Проверка на наличие соответствующего заголовка
         title_exists = Title.objects.filter(id=title_id).exists()
         if not title_exists:
-            # Если заголовка нет, добавляем ошибку в serializer, но не прерываем выполнение
-            serializer._errors = {"title_id": ["Title with the given ID does not exist."]}
+            serializer._errors = (
+                {"title_id": ["Title with the given ID does not exist."]}
+            )
         else:
             serializer.save(author=self.request.user, title_id=title_id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        review_id = int(self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, id=review_id)
+        return review.comments.all()
 
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
@@ -252,3 +290,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         else:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
         return super(CommentViewSet, self).get_permissions()
+
+    def perform_create(self, serializer):
+        review_id = int(self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, id=review_id)
+        user = self.request.user
+        serializer.save(author=user, review=review)
