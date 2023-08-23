@@ -6,7 +6,7 @@ from django.core.management import BaseCommand
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, CustomUser)
 
-#Словарь Модель+Файл.csv в БД 
+# Словарь Модель+Файл.csv в БД
 TABLES_DICT = {
     CustomUser: 'users.csv',
     Category: 'category.csv',
@@ -19,14 +19,14 @@ TABLES_DICT = {
 
 
 class Command(BaseCommand):
-    #Загрузка данных
+    # Загрузка данных
     help = 'Load data from csv files'
 
     def handle(self, *args, **kwargs):
         for model, csv_file1 in TABLES_DICT.items():
             with open(
-                f'{settings.BASE_DIR}/static/data/{csv_file1}',
-                'r', encoding='utf-8'
+                    f'{settings.BASE_DIR}/static/data/{csv_file1}',
+                    'r', encoding='utf-8'
             ) as csv_file:
                 reader = csv.DictReader(csv_file)
                 model.objects.bulk_create(model(**data) for data in reader)
