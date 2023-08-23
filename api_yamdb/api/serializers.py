@@ -130,5 +130,7 @@ class CommentSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        exclude = ('review',)
+
+        fields = ('id', 'author', 'title')  # Изменено 'user' на 'author'
         model = Comment
+
