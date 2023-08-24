@@ -208,15 +208,6 @@ class TitleViewSet(viewsets.ModelViewSet):
             return TitleSerializer
         return TitleCreateSerializer
 
-    def perform_create(self, serializer):
-        category = get_object_or_404(
-            Category, slug=self.request.data.get('category')
-        )
-        genre = Genre.objects.filter(
-            slug=self.request.data.getlist('genre')
-        )
-        serializer.save(category=category, genre=genre)
-
     def perform_update(self, serializer):
         self.perform_create(serializer)
 
@@ -239,15 +230,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return super(ReviewViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        # Проверка на наличие соответствующего заголовка
-        title_exists = Title.objects.filter(id=title_id).exists()
-        if not title_exists:
-            serializer._errors = (
-                {"title_id": ["Title with the given ID does not exist."]}
-            )
-        else:
-            serializer.save(author=self.request.user, title_id=title_id)
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        serializer.save(
+            author=self.request.user, title=title
+        )
 
 
 class CommentViewSet(viewsets.ModelViewSet):

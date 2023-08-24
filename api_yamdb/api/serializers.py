@@ -63,13 +63,6 @@ class TitleSerializer(serializers.ModelSerializer):
         model = Title
         fields = ['id', 'name', 'year', 'rating', 'description', 'genre', 'category']
 
-    #def create(self, validated_data):
-    #    genres_data = validated_data.pop('genre')
-    #    title = Title.objects.create(**validated_data)
-    #    for genre_data in genres_data:
-    #        GenreTitle.objects.create(genre=genre_data, title=title)
-    #    return title
-
     def get_rating(self, obj):
         rating = obj.reviews.aggregate(Avg('score')).get('score__avg')
         if not rating:
