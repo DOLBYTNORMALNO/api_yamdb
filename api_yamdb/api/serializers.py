@@ -44,13 +44,14 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         exclude = ['id']
         model = Category
+        lookup_field = 'slug'
 
 
 class GenreSerializer(serializers.ModelSerializer):
-
     class Meta:
         exclude = ['id']
         model = Genre
+        lookup_field = 'slug'
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -60,13 +61,36 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = ['id', 'name', 'year', 'rating', 'description', 'genre', 'category']
+
+    #def create(self, validated_data):
+    #    genres_data = validated_data.pop('genre')
+    #    title = Title.objects.create(**validated_data)
+    #    for genre_data in genres_data:
+    #        GenreTitle.objects.create(genre=genre_data, title=title)
+    #    return title
 
     def get_rating(self, obj):
         rating = obj.reviews.aggregate(Avg('score')).get('score__avg')
         if not rating:
             return rating
         return round(rating, 1)
+    
+
+class TitleCreateSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(),
+        slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(),
+        slug_field='slug',
+        many=True
+    )
+
+    class Meta:
+        fields = '__all__'
+        model = Title
 
 
 class ReviewSerializer(serializers.ModelSerializer):

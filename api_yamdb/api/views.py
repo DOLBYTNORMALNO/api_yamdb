@@ -6,24 +6,23 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django.http import Http404
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
-
-from rest_framework.relations import SlugRelatedField
-
-from reviews.models import CustomUser, Review, Comment
 import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from reviews.models import CustomUser, Review
+from .filters import TitleFilter
 from .serializers import UserSerializer
 from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrAdmin
-
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     CategorySerializer,
     GenreSerializer,
     TitleSerializer,
+    TitleCreateSerializer,
     CommentSerializer,
     ReviewSerializer
 )
@@ -200,8 +199,14 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
-    serializer_class = TitleSerializer
     permission_classes = [IsAdminOrReadOnly]
+    filter_backends =[DjangoFilterBackend]
+    filterset_class = TitleFilter
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleSerializer
+        return TitleCreateSerializer
 
     def perform_create(self, serializer):
         category = get_object_or_404(
