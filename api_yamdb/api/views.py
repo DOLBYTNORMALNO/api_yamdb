@@ -10,7 +10,7 @@ from django.http import Http404
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 
 from rest_framework.relations import SlugRelatedField
-
+from rest_framework.pagination import PageNumberPagination
 from reviews.models import CustomUser, Review, Comment
 import random
 import string
@@ -224,10 +224,9 @@ class TitleViewSet(viewsets.ModelViewSet):
         title.genres.set(genres)
 
 
-
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         title_id = int(self.kwargs.get('title_id'))
@@ -235,16 +234,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return title.reviews.all()
 
     def get_permissions(self):
-        if self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAuthorOrModeratorOrAdmin]
-        else:
+        if self.action not in ['update', 'partial_update', 'destroy']:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
+            return super(ReviewViewSet, self).get_permissions()
+        self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         return super(ReviewViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
         title_id = self.kwargs.get('title_id')
         # Проверка на наличие соответствующего заголовка
-        title_exists = Title.objects.filter(id=title_id).exists()
+        title_exists = get_object_or_404(Title, id=title_id)
         if not title_exists:
             serializer._errors = (
                 {"title_id": ["Title with the given ID does not exist."]}
@@ -255,6 +254,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         review_id = int(self.kwargs.get('review_id'))
@@ -262,11 +262,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         return review.comments.all()
 
     def get_permissions(self):
-        if self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAuthorOrModeratorOrAdmin]
-        else:
+        if self.action not in ['update', 'partial_update', 'destroy']:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
-
+            return super(CommentViewSet, self).get_permissions()
+        self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         return super(CommentViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
