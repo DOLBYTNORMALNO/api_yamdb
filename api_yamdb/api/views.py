@@ -204,24 +204,16 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
 
     def perform_create(self, serializer):
-        category_slug = self.request.data.get('category')
-        category = Category.objects.get(slug=category_slug)
-
-        genres_slugs = self.request.data.getlist('genre')
-        genres = Genre.objects.filter(slug__in=genres_slugs)
-
-        title = serializer.save(category=category)
-        title.genres.set(genres)
+        category = get_object_or_404(
+            Category, slug=self.request.data.get('category')
+        )
+        genre = Genre.objects.filter(
+            slug=self.request.data.getlist('genre')
+        )
+        serializer.save(category=category, genre=genre)
 
     def perform_update(self, serializer):
-        category_slug = self.request.data.get('category')
-        category = Category.objects.get(slug=category_slug)
-
-        genres_slugs = self.request.data.getlist('genre')
-        genres = Genre.objects.filter(slug__in=genres_slugs)
-
-        title = serializer.save(category=category)
-        title.genres.set(genres)
+        self.perform_create(serializer)
 
 
 

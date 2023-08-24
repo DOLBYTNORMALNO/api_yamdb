@@ -55,19 +55,12 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
-    genres = serializers.SlugRelatedField(slug_field='slug', many=True, queryset=Genre.objects.all())
+    genre = GenreSerializer(many=True, read_only=True)
     rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Title
         fields = '__all__'
-
-    def create(self, validated_data):
-        genres_data = validated_data.pop('genres')
-        title = Title.objects.create(**validated_data)
-        for genre_data in genres_data:
-            GenreTitle.objects.create(genre=genre_data, title=title)
-        return title
 
     def get_rating(self, obj):
         rating = obj.reviews.aggregate(Avg('score')).get('score__avg')
