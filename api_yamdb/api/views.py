@@ -9,7 +9,6 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework.permissions import (
-    IsAdminUser,
     IsAuthenticatedOrReadOnly,
     IsAuthenticated,
 )
@@ -77,7 +76,8 @@ class SignUpView(APIView):
             if user.username != username:
                 return Response(
                     {
-                        "detail": "Email already exists with a different username."
+                        "detail": "Email already exists "
+                                  "with a different username."
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
