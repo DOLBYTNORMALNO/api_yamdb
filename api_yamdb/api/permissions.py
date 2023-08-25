@@ -25,7 +25,9 @@ class IsAdmin(permissions.BasePermission):
 
 class IsSelfOrAdmin(permissions.BasePermission):
     """
-    Разрешение на доступ к данным своей учетной записи или если пользователь - администратор.
+    Разрешение на доступ к данным
+    своей учетной записи
+    или если пользователь - администратор.
     """
 
     def has_object_permission(self, request, view, obj):
@@ -34,7 +36,9 @@ class IsSelfOrAdmin(permissions.BasePermission):
 
 class IsAuthenticatedOrReadOnly(permissions.BasePermission):
     """
-    Разрешение на чтение для всех, но на запись только для аутентифицированных пользователей.
+    Разрешение на чтение для всех,
+    но на запись только для
+    аутентифицированных пользователей.
     """
 
     def has_permission(self, request, view):
@@ -45,7 +49,9 @@ class IsAuthenticatedOrReadOnly(permissions.BasePermission):
 
 class IsAuthorOrModeratorOrAdmin(permissions.BasePermission):
     """
-    Разрешение на редактирование и удаление только для автора, модератора или администратора.
+    Разрешение на редактирование и
+    удаление только для автора,
+    модератора или администратора.
     """
 
     def has_object_permission(self, request, view, obj):

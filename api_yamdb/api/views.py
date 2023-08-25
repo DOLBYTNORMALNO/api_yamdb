@@ -55,7 +55,6 @@ class ObtainTokenView(APIView):
         if user.confirmation_code != confirmation_code:
             return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST)
 
-        # Создание токена для пользователя
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
@@ -67,14 +66,12 @@ class SignUpView(APIView):
         email = request.data.get("email")
         username = request.data.get("username")
 
-        # Проверка на имя пользователя "me"
         if username == "me":
             return Response(
                 {"detail": 'Username "me" is restricted.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Проверка на уникальность email
         if CustomUser.objects.filter(email=email).exists():
             user = CustomUser.objects.get(email=email)
             if user.username != username:
@@ -85,7 +82,6 @@ class SignUpView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             else:
-                # Если пользователь с таким email уже существует и создан администратором
                 confirmation_code = "".join(
                     random.choices(string.ascii_letters + string.digits, k=10)
                 )
@@ -101,7 +97,6 @@ class SignUpView(APIView):
                 data = {"email": email, "username": user.username}
                 return Response(data, status=status.HTTP_200_OK)
 
-        # Проверка на уникальность имени пользователя
         if CustomUser.objects.filter(username=username).exists():
             return Response(
                 {"detail": "Username already exists."},
@@ -110,16 +105,13 @@ class SignUpView(APIView):
 
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            # Генерация кода подтверждения
             confirmation_code = "".join(
                 random.choices(string.ascii_letters + string.digits, k=10)
             )
-            # Сохранение пользователя с ролью "user" и кодом подтверждения
             user = serializer.save(
                 role=CustomUser.USER, confirmation_code=confirmation_code
             )
 
-            # Отправка письма с кодом подтверждения
             send_mail(
                 "Подтверждение регистрации",
                 f"Ваш код подтверждения: {confirmation_code}",
@@ -128,7 +120,6 @@ class SignUpView(APIView):
                 fail_silently=False,
             )
 
-            # Возвращаем только email и username
             data = {
                 "email": serializer.data["email"],
                 "username": serializer.data["username"],
@@ -288,7 +279,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title_id = self.kwargs.get("title_id")
-        # Проверка на наличие соответствующего заголовка
         title_exists = get_object_or_404(Title, id=title_id)
         if not title_exists:
             serializer._errors = {

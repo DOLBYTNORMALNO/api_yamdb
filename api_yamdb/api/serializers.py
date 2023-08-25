@@ -36,7 +36,7 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "bio",
-        )  # Добавлены поля
+        )
         extra_kwargs = {
             "username": {
                 "max_length": 150,
@@ -52,7 +52,6 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # Генерация кода подтверждения
         confirmation_code = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
         )
