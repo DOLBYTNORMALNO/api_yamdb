@@ -8,7 +8,11 @@ from rest_framework.decorators import action
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import (
+    IsAdminUser,
+    IsAuthenticatedOrReadOnly,
+    IsAuthenticated,
+)
 
 
 from rest_framework.pagination import PageNumberPagination
@@ -21,7 +25,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import CustomUser, Review
 from .filters import TitleFilter
 from .serializers import UserSerializer
-from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrAdmin
+from .permissions import (
+    IsAdminOrReadOnly,
+    IsAdmin,
+    IsAuthenticatedOrReadOnly,
+    IsAuthorOrModeratorOrAdmin,
+)
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     CategorySerializer,
@@ -29,70 +38,80 @@ from .serializers import (
     TitleSerializer,
     TitleCreateSerializer,
     CommentSerializer,
-    ReviewSerializer
+    ReviewSerializer,
 )
 
 
 class ObtainTokenView(APIView):
     def post(self, request):
-        username = request.data.get('username')
-        confirmation_code = request.data.get('confirmation_code')
+        username = request.data.get("username")
+        confirmation_code = request.data.get("confirmation_code")
 
         if not all([username, confirmation_code]):
-            return Response('vse ploho', status=status.HTTP_400_BAD_REQUEST)
+            return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST)
 
         user = get_object_or_404(CustomUser, username=username)
 
         if user.confirmation_code != confirmation_code:
-            return Response('vse ploho', status=status.HTTP_400_BAD_REQUEST)
+            return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST)
 
         # Создание токена для пользователя
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
-        return Response({'token': access_token}, status=status.HTTP_200_OK)
+        return Response({"token": access_token}, status=status.HTTP_200_OK)
 
 
 class SignUpView(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        username = request.data.get('username')
+        email = request.data.get("email")
+        username = request.data.get("username")
 
         # Проверка на имя пользователя "me"
         if username == "me":
-            return Response({'detail': 'Username "me" is restricted.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": 'Username "me" is restricted.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Проверка на уникальность email
         if CustomUser.objects.filter(email=email).exists():
             user = CustomUser.objects.get(email=email)
             if user.username != username:
-                return Response({'detail': 'Email already exists with a different username.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "detail": "Email already exists with a different username."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             else:
                 # Если пользователь с таким email уже существует и создан администратором
-                confirmation_code = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+                confirmation_code = "".join(
+                    random.choices(string.ascii_letters + string.digits, k=10)
+                )
                 user.confirmation_code = confirmation_code
                 user.save()
                 send_mail(
-                    'Подтверждение регистрации',
-                    f'Ваш код подтверждения: {confirmation_code}',
-                    'noreply@yamdb.com',
+                    "Подтверждение регистрации",
+                    f"Ваш код подтверждения: {confirmation_code}",
+                    "noreply@yamdb.com",
                     [user.email],
                     fail_silently=False,
                 )
-                data = {
-                    'email': email,
-                    'username': user.username
-                }
+                data = {"email": email, "username": user.username}
                 return Response(data, status=status.HTTP_200_OK)
 
         # Проверка на уникальность имени пользователя
         if CustomUser.objects.filter(username=username).exists():
-            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Username already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             # Генерация кода подтверждения
-            confirmation_code = ''.join(
+            confirmation_code = "".join(
                 random.choices(string.ascii_letters + string.digits, k=10)
             )
             # Сохранение пользователя с ролью "user" и кодом подтверждения
@@ -102,17 +121,17 @@ class SignUpView(APIView):
 
             # Отправка письма с кодом подтверждения
             send_mail(
-                'Подтверждение регистрации',
-                f'Ваш код подтверждения: {confirmation_code}',
-                'noreply@yamdb.com',
+                "Подтверждение регистрации",
+                f"Ваш код подтверждения: {confirmation_code}",
+                "noreply@yamdb.com",
                 [user.email],
                 fail_silently=False,
             )
 
             # Возвращаем только email и username
             data = {
-                'email': serializer.data['email'],
-                'username': serializer.data['username']
+                "email": serializer.data["email"],
+                "username": serializer.data["username"],
             }
             return Response(data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -123,42 +142,64 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAdmin]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['username']
-    lookup_field = 'username'
+    search_fields = ["username"]
+    lookup_field = "username"
 
-    @action(detail=False, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["get", "patch"],
+        permission_classes=[IsAuthenticated],
+    )
     def me(self, request):
-        if 'role' in request.data:
-            return Response({'detail': 'Changing role is not allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+        if "role" in request.data:
+            return Response(
+                {"detail": "Changing role is not allowed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if request.method == 'GET':
+        if request.method == "GET":
             serializer = self.get_serializer(request.user)
             return Response(serializer.data)
-        elif request.method == 'PATCH':
-            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+        elif request.method == "PATCH":
+            serializer = self.get_serializer(
+                request.user, data=request.data, partial=True
+            )
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def create(self, request, *args, **kwargs):
-        email = request.data.get('email')
-        username = request.data.get('username')
+        email = request.data.get("email")
+        username = request.data.get("username")
 
         if CustomUser.objects.filter(email=email).exists():
-            return Response({'detail': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if CustomUser.objects.filter(username=username).exists():
-            return Response({'detail': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Username already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return super(UserViewSet, self).create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        return Response({'detail': 'Method not allowed.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response(
+            {"detail": "Method not allowed."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
@@ -173,13 +214,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ("name",)
     permission_classes = [IsAdminOrReadOnly]
 
     @action(
-        detail=False, methods=['delete'],
-        url_path=r'(?P<slug>\w+)',
-        lookup_field='slug', url_name='category_slug'
+        detail=False,
+        methods=["delete"],
+        url_path=r"(?P<slug>\w+)",
+        lookup_field="slug",
+        url_name="category_slug",
     )
     def get_category(self, request, slug):
         category = self.get_object()
@@ -191,15 +234,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    lookup_field = 'slug'
+    lookup_field = "slug"
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ("name",)
     permission_classes = [IsAdminOrReadOnly]
 
     @action(
-        detail=False, methods=['delete'],
-        url_path=r'(?P<slug>\w+)',
-        lookup_field='slug', url_name='genre_slug'
+        detail=False,
+        methods=["delete"],
+        url_path=r"(?P<slug>\w+)",
+        lookup_field="slug",
+        url_name="genre_slug",
     )
     def get_genre(self, request, slug):
         genre = self.get_object()
@@ -209,14 +254,15 @@ class GenreViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(
-        rating=Avg('reviews__score')).order_by('rating')
+    queryset = Title.objects.annotate(rating=Avg("reviews__score")).order_by(
+        "rating"
+    )
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends =[DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
 
     def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
+        if self.action in ("list", "retrieve"):
             return TitleSerializer
         return TitleCreateSerializer
 
@@ -229,29 +275,27 @@ class ReviewViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     def get_queryset(self):
-        title_id = int(self.kwargs.get('title_id'))
+        title_id = int(self.kwargs.get("title_id"))
         title = get_object_or_404(Title, pk=title_id)
         return title.reviews.all()
 
     def get_permissions(self):
-        if self.action not in ['update', 'partial_update', 'destroy']:
+        if self.action not in ["update", "partial_update", "destroy"]:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
             return super(ReviewViewSet, self).get_permissions()
         self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         return super(ReviewViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
-
-        title_id = self.kwargs.get('title_id')
+        title_id = self.kwargs.get("title_id")
         # Проверка на наличие соответствующего заголовка
         title_exists = get_object_or_404(Title, id=title_id)
         if not title_exists:
-            serializer._errors = (
-                {"title_id": ["Title with the given ID does not exist."]}
-            )
+            serializer._errors = {
+                "title_id": ["Title with the given ID does not exist."]
+            }
         else:
             serializer.save(author=self.request.user, title_id=title_id)
-
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -259,19 +303,19 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     def get_queryset(self):
-        review_id = int(self.kwargs.get('review_id'))
+        review_id = int(self.kwargs.get("review_id"))
         review = get_object_or_404(Review, id=review_id)
         return review.comments.all()
 
     def get_permissions(self):
-        if self.action not in ['update', 'partial_update', 'destroy']:
+        if self.action not in ["update", "partial_update", "destroy"]:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
             return super(CommentViewSet, self).get_permissions()
         self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         return super(CommentViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
-        review_id = int(self.kwargs.get('review_id'))
+        review_id = int(self.kwargs.get("review_id"))
         review = get_object_or_404(Review, id=review_id)
         user = self.request.user
         serializer.save(author=user, review=review)

@@ -5,13 +5,13 @@ CHOICES_SCORE = [(i, i) for i in range(1, 11)]
 
 
 class CustomUser(AbstractUser):
-    USER = 'user'
-    MODERATOR = 'moderator'
-    ADMIN = 'admin'
+    USER = "user"
+    MODERATOR = "moderator"
+    ADMIN = "admin"
     ROLE_CHOICES = [
-        (USER, 'User'),
-        (MODERATOR, 'Moderator'),
-        (ADMIN, 'Admin'),
+        (USER, "User"),
+        (MODERATOR, "Moderator"),
+        (ADMIN, "Admin"),
     ]
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=USER)
@@ -31,7 +31,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
 
     def __str__(self):
-        return f'{self.name}'
+        return f"{self.name}"
 
 
 class Genre(models.Model):
@@ -43,7 +43,7 @@ class Genre(models.Model):
     slug = models.SlugField(unique=True)
 
     def __str__(self):
-        return f'{self.name}'
+        return f"{self.name}"
 
 
 class Title(models.Model):
@@ -54,68 +54,66 @@ class Title(models.Model):
     name = models.CharField(max_length=256)
     year = models.IntegerField()
     description = models.TextField()
-    genre = models.ManyToManyField(
-        Genre, through='GenreTitle')
+    genre = models.ManyToManyField(Genre, through="GenreTitle")
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL,
-        related_name='titles', blank=True, null=True)
+        Category,
+        on_delete=models.SET_NULL,
+        related_name="titles",
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return self.name
 
 
 class GenreTitle(models.Model):
-    genre = models.ForeignKey(
-        Genre, on_delete=models.CASCADE)
-    title = models.ForeignKey(
-        Title, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f'{self.genre} {self.title}'
+        return f"{self.genre} {self.title}"
 
 
 class Review(models.Model):
     author = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
-        related_name='reviews',
+        related_name="reviews",
         null=False,
     )
 
     title = models.ForeignKey(
-        Title,
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        null=False
+        Title, on_delete=models.CASCADE, related_name="reviews", null=False
     )
     text = models.TextField()
     score = models.IntegerField(choices=CHOICES_SCORE)
-    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
     def __str__(self) -> str:
-        return f'{self.title} {self.text} {self.score}'
+        return f"{self.title} {self.text} {self.score}"
 
     class Meta:
         constraints = (
             models.UniqueConstraint(
-                fields=('title', 'author',),
-                name='unique_title_author'
+                fields=(
+                    "title",
+                    "author",
+                ),
+                name="unique_title_author",
             ),
         )
 
 
 class Comment(models.Model):
     author = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name='comments'
+        CustomUser, on_delete=models.CASCADE, related_name="comments"
     )
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE,
-        related_name='comments'
+        Review, on_delete=models.CASCADE, related_name="comments"
     )
     text = models.TextField()
-    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
     def __str__(self):
-        return f'{self.text}'
+        return f"{self.text}"
