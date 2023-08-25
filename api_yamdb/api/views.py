@@ -5,25 +5,29 @@ from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
-from django.http import Http404
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 
-from rest_framework.relations import SlugRelatedField
+
 from rest_framework.pagination import PageNumberPagination
-from reviews.models import CustomUser, Review, Comment
+
+
 import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from reviews.models import CustomUser, Review
+from .filters import TitleFilter
 from .serializers import UserSerializer
 from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrAdmin
-
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     CategorySerializer,
     GenreSerializer,
     TitleSerializer,
+    TitleCreateSerializer,
     CommentSerializer,
     ReviewSerializer
 )
@@ -207,28 +211,17 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
-    serializer_class = TitleSerializer
     permission_classes = [IsAdminOrReadOnly]
+    filter_backends =[DjangoFilterBackend]
+    filterset_class = TitleFilter
 
-    def perform_create(self, serializer):
-        category_slug = self.request.data.get('category')
-        category = Category.objects.get(slug=category_slug)
-
-        genres_slugs = self.request.data.getlist('genre')
-        genres = Genre.objects.filter(slug__in=genres_slugs)
-
-        title = serializer.save(category=category)
-        title.genres.set(genres)
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleSerializer
+        return TitleCreateSerializer
 
     def perform_update(self, serializer):
-        category_slug = self.request.data.get('category')
-        category = Category.objects.get(slug=category_slug)
-
-        genres_slugs = self.request.data.getlist('genre')
-        genres = Genre.objects.filter(slug__in=genres_slugs)
-
-        title = serializer.save(category=category)
-        title.genres.set(genres)
+        self.perform_create(serializer)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -248,6 +241,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return super(ReviewViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
+
         title_id = self.kwargs.get('title_id')
         # Проверка на наличие соответствующего заголовка
         title_exists = get_object_or_404(Title, id=title_id)
@@ -257,6 +251,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             )
         else:
             serializer.save(author=self.request.user, title_id=title_id)
+
 
 
 class CommentViewSet(viewsets.ModelViewSet):

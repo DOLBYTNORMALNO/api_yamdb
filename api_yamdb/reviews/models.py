@@ -43,7 +43,7 @@ class Genre(models.Model):
     slug = models.SlugField(unique=True)
 
     def __str__(self):
-        return self.name
+        return f'{self.name}'
 
 
 class Title(models.Model):
@@ -54,7 +54,7 @@ class Title(models.Model):
     name = models.CharField(max_length=256)
     year = models.IntegerField()
     description = models.TextField()
-    genres = models.ManyToManyField(
+    genre = models.ManyToManyField(
         Genre, through='GenreTitle')
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL,
