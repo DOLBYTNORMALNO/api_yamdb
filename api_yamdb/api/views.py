@@ -33,7 +33,14 @@ class ObtainTokenView(APIView):
     def post(self, request):
         username = request.data.get('username')
         confirmation_code = request.data.get('confirmation_code')
-        user = get_object_or_404(CustomUser, username=username, confirmation_code=confirmation_code)
+
+        if not all([username, confirmation_code]):
+            return Response('vse ploho', status=status.HTTP_400_BAD_REQUEST)
+
+        user = get_object_or_404(CustomUser, username=username)
+
+        if user.confirmation_code != confirmation_code:
+            return Response('vse ploho', status=status.HTTP_400_BAD_REQUEST)
 
         # Создание токена для пользователя
         refresh = RefreshToken.for_user(user)
