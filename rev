@@ -1,0 +1,930 @@
+
+reviews/models.py
+
+from django.contrib.auth.models import AbstractUser 
+from django.db import models 
+ 
+CHOICES_SCORE = [(i, i) for i in range(1, 11)] 
+ 
+ 
+Хорошо бы во всех моделях и полях добавить verbose_name и (verbose_plural_name дополнительно для модели).
+Можно лучше
+Тимофей Абоносимовревьюер
+class CustomUser(AbstractUser): 
+Юзера лучше в отдельное приложение вынести. 
+Надо исправить
+Тимофей Абоносимовревьюер
+    USER = "user" 
+    MODERATOR = "moderator" 
+    ADMIN = "admin" 
+    ROLE_CHOICES = [ 
+        (USER, "User"), 
+        (MODERATOR, "Moderator"), 
+        (ADMIN, "Admin"), 
+    ] 
+ 
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=USER) 
+    confirmation_code = models.CharField(max_length=10, blank=True, null=True) 
+    bio = models.TextField(blank=True, null=True) 
+ 
+    def __str__(self): 
+        return self.username 
+ 
+ 
+class Category(models.Model): 
+    class Meta: 
+По кодстайлу свойство class Meta должно быть после перечисления полей таблицы БД. Порядок такой:
+
+    All database fields
+    Custom manager attributes
+    class Meta
+    def __str__()
+    def save()
+    def get_absolute_url()
+    Any custom methods
+
+Надо исправить
+Тимофей Абоносимовревьюер
+        verbose_name = "category" 
+        verbose_name_plural = "categories" 
+ 
+    name = models.CharField(max_length=20) 
+    slug = models.SlugField(unique=True) 
+ 
+    def __str__(self): 
+        return f"{self.name}" 
+Здесь f-строка не нужна, свойство уже представляет собой строку. В других моделях тоже встречается. 
+Надо исправить
+Тимофей Абоносимовревьюер
+ 
+ 
+class Genre(models.Model): 
+Модели "категория" и "жанр" одинаковые, лучше не копипастить, а создать базовую абстрактную модель и отнаследоваться от неё.
+Надо исправить
+Тимофей Абоносимовревьюер
+    class Meta: 
+        verbose_name = "genre" 
+        verbose_name_plural = "genres" 
+ 
+    name = models.CharField(max_length=20) 
+    slug = models.SlugField(unique=True) 
+ 
+    def __str__(self): 
+        return f"{self.name}" 
+ 
+ 
+class Title(models.Model): 
+    class Meta: 
+        verbose_name = "title" 
+        verbose_name_plural = "titles" 
+ 
+    name = models.CharField(max_length=256) 
+    year = models.IntegerField() 
+
+    По ТЗ год наименования не может быть больше текущего, стоит добавить валидацию на уровне модели.
+    И здесь лучше использовать PositiveSmallIntegerField, чтобы БД меньше памяти закладывала под соответствующую колонку. Хватит до 32767 года.
+
+Можно лучше
+На это поле можно навесить индекс, передав db_index=True. Индекс помогает ускорить доступ к данным (если упрощать, записи сортируются по столбцу, для которого задан индекс, а поиск по сортированным данным эффективнее), но требуется дополнительных накладных расходов на хранение и перестроение индексов. Поэтому к созданию индекса нужно подходить осторожно.
+Надо исправить
+Тимофей Абоносимовревьюер
+    description = models.TextField() 
+    genre = models.ManyToManyField(Genre, through="GenreTitle") 
+Если в промежуточной таблице нет дополнительных полей, кроме внешних ключей, то можно её и не объявлять явно. Отдельная модель нужна, когда хранится что-то ещё. 
+Можно лучше
+Тимофей Абоносимовревьюер
+    category = models.ForeignKey( 
+        Category, 
+        on_delete=models.SET_NULL, 
+        related_name="titles", 
+        blank=True, 
+        null=True, 
+    ) 
+ 
+    def __str__(self): 
+        return self.name 
+ 
+ 
+class GenreTitle(models.Model): 
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE) 
+    title = models.ForeignKey(Title, on_delete=models.CASCADE) 
+ 
+    def __str__(self): 
+        return f"{self.genre} {self.title}" 
+ 
+ 
+class Review(models.Model): 
+    author = models.ForeignKey( 
+        CustomUser, 
+        on_delete=models.CASCADE, 
+        related_name="reviews", 
+        null=False, 
+    ) 
+ 
+    title = models.ForeignKey( 
+        Title, on_delete=models.CASCADE, related_name="reviews", null=False 
+    ) 
+    text = models.TextField() 
+    score = models.IntegerField(choices=CHOICES_SCORE) 
+
+    И здесь тоже лучше использовать PositiveSmallIntegerField.
+    Вместо чойсов проще добавить валидацию на минимальное и максимальное значение.
+
+Надо исправить
+Тимофей Абоносимовревьюер
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True) 
+ 
+    def __str__(self) -> str: 
+По кодстайлу метод должен быть объявлен после class Meta.
+Надо исправить
+Тимофей Абоносимовревьюер
+        return f"{self.title} {self.text} {self.score}" 
+Если представить, что текст состоит из нескольких тысяч знаков, то работать со строковым представлением, скажем, в django shell будет не слишком удобно - всё окно терминала заполнит. Да и в целом сложно представить, где это может быть полезным. Лучше ограничить через срез строки количество выводимых символов. 
+Отлично
+Вот здесь как раз уместна f-строка для конкатенации. 
+Надо исправить
+Тимофей Абоносимовревьюер
+ 
+    class Meta: 
+        constraints = ( 
+            models.UniqueConstraint( 
+                fields=( 
+                    "title", 
+                    "author", 
+                ), 
+                name="unique_title_author", 
+            ), 
+        ) 
+ 
+ 
+class Comment(models.Model): 
+    author = models.ForeignKey( 
+        CustomUser, on_delete=models.CASCADE, related_name="comments" 
+    ) 
+    review = models.ForeignKey( 
+        Review, on_delete=models.CASCADE, related_name="comments" 
+    ) 
+    text = models.TextField() 
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True) 
+ 
+    def __str__(self): 
+        return f"{self.text}" 
+
+    Здесь f-строка не нужна, свойство уже представляет собой строку.
+    По аналогии с тайтлом, стоит ограничить количество выводимых символов.
+
+Надо исправить
+Тимофей Абоносимовревьюер
+
+api/filters.py
+
+from django_filters import rest_framework as filters 
+Не хватает пустой строки, чтобы разделить группы импортов из сторонней библиотеки и текущего проекта, как рекомендует делать PEP8.
+Надо исправить
+Тимофей Абоносимовревьюер
+from reviews.models import Title 
+ 
+ 
+class TitleFilter(filters.FilterSet): 
+Здесь можно использовать синтаксис словаря в Meta, где ключ - название поля, а значение - перечисление с используемыми фильтрами. 
+И для названия, допустим, мне кажется логичнее использовать icontains - т.е. фильтруем не по строгому соответствию, а проверяем вхождение переданной строки.
+Можно лучше
+Тимофей Абоносимовревьюер
+    category = filters.CharFilter( 
+        field_name='category__slug', 
+        lookup_expr='iexact' 
+    ) 
+    genre = filters.CharFilter( 
+        field_name='genre__slug', 
+        lookup_expr='iexact' 
+    ) 
+    name = filters.CharFilter( 
+        field_name='name', 
+        lookup_expr='iexact' 
+    ) 
+    year = filters.NumberFilter( 
+        field_name='year', 
+        lookup_expr='iexact' 
+    ) 
+ 
+    class Meta: 
+        model = Title 
+        fields = '__all__' 
+
+api/permissions.py
+
+from rest_framework import permissions 
+ 
+ 
+class IsAdminOrReadOnly(permissions.BasePermission): 
+    """ 
+    Разрешение на чтение для всех, но на запись только для администратора. 
+    """ 
+ 
+    def has_permission(self, request, view): 
+        if request.method in permissions.SAFE_METHODS: 
+            return True 
+        return request.user.is_authenticated and request.user.role == "admin" 
+
+    В классе CustomUser объявлены константы с названиями ролей, и лучше их использовать, а не угадывать значение.
+    В Django есть ещё суперюзер, ему тоже нужно разрешить.
+
+Можно лучше
+
+    А ещё лучше в классе модели юзера добавить свойство is_admin (и ниже ещё с модератором нужно), где это определять. Будет удобнее обратиться к одному свойству request.user.is_admin, чем каждый раз писать проверку.
+    Можно условия объединить в одно выражение, соединив с помощью логического оператора.
+
+Надо исправить
+Тимофей Абоносимовревьюер
+ 
+ 
+class IsAdmin(permissions.BasePermission): 
+    """ 
+    Разрешение только для администратора или суперпользователя. 
+    """ 
+ 
+    def has_permission(self, request, view): 
+        return request.user.is_authenticated and ( 
+            request.user.role == "admin" or request.user.is_superuser 
+        ) 
+ 
+ 
+class IsSelfOrAdmin(permissions.BasePermission): 
+    """ 
+    Разрешение на доступ к данным 
+    своей учетной записи 
+    или если пользователь - администратор. 
+    """ 
+ 
+    def has_object_permission(self, request, view, obj): 
+        return obj == request.user or request.user.role == "admin" 
+ 
+ 
+class IsAuthenticatedOrReadOnly(permissions.BasePermission): 
+    """ 
+    Разрешение на чтение для всех, 
+    но на запись только для 
+    аутентифицированных пользователей. 
+    """ 
+ 
+    def has_permission(self, request, view): 
+        if request.method in permissions.SAFE_METHODS: 
+            return True 
+        return request.user.is_authenticated 
+ 
+ 
+class IsAuthorOrModeratorOrAdmin(permissions.BasePermission): 
+    """ 
+    Разрешение на редактирование и 
+    удаление только для автора, 
+    модератора или администратора. 
+    """ 
+ 
+    def has_object_permission(self, request, view, obj): 
+        return request.user.is_authenticated and ( 
+            obj.author == request.user 
+            or request.user.role in ["moderator", "admin"] 
+        ) 
+
+api/serializers.py
+
+from django.db.models import Avg 
+from rest_framework import serializers 
+from reviews.models import ( 
+    CustomUser, 
+    Title, 
+    Category, 
+    Genre, 
+    Review, 
+    Comment, 
+) 
+import random 
+import string 
+from rest_framework.relations import SlugRelatedField 
+from django.core.validators import RegexValidator 
+ 
+ 
+class UserSerializer(serializers.ModelSerializer): 
+    username = serializers.CharField( 
+Достаточно в fields оставить, это стандартные ограничения для юзернейма из модели Django.
+Надо исправить
+Тимофей Абоносимовревьюер
+        max_length=150, 
+        validators=[RegexValidator(r"^[\w.@+-]+\Z")], 
+        required=True, 
+        allow_blank=False, 
+    ) 
+ 
+    role = serializers.ChoiceField( 
+        choices=CustomUser.ROLE_CHOICES, default=CustomUser.USER 
+    ) 
+ 
+    class Meta: 
+        model = CustomUser 
+        fields = ( 
+            "email", 
+            "username", 
+            "role", 
+            "first_name", 
+            "last_name", 
+            "bio", 
+        ) 
+        extra_kwargs = { 
+Можно убрать это свойство. Для юзернейма и емейла валидацию DRF подтянет из модели, а read_only для роли можно тогда установить в свойстве класса.
+Надо исправить
+Тимофей Абоносимовревьюер
+            "username": { 
+                "max_length": 150, 
+                "required": True, 
+                "allow_blank": False, 
+            }, 
+            "email": { 
+                "max_length": 254, 
+                "required": True, 
+                "allow_blank": False, 
+            }, 
+            "role": {"read_only": True}, 
+        } 
+ 
+    def create(self, validated_data): 
+        confirmation_code = "".join( 
+            random.choices(string.ascii_letters + string.digits, k=10) 
+В Django предусмотрен генератора токена, лучше взять готовых механизм. Вот здесь примеры использования.
+Надо исправить
+Тимофей Абоносимовревьюер
+        ) 
+ 
+        user = super().create(validated_data) 
+        user.confirmation_code = confirmation_code 
+        user.save() 
+ 
+        return user 
+ 
+ 
+class CategorySerializer(serializers.ModelSerializer): 
+    class Meta: 
+        exclude = ["id"] 
+        model = Category 
+        lookup_field = "slug" 
+ 
+ 
+class GenreSerializer(serializers.ModelSerializer): 
+Сериализаторы у "категории" и "жанра" одинаковые, как и модели. Лучше сделать общий класс и наследоваться от него. 
+Надо исправить
+Тимофей Абоносимовревьюер
+    class Meta: 
+        exclude = ["id"] 
+        model = Genre 
+        lookup_field = "slug" 
+ 
+ 
+class TitleSerializer(serializers.ModelSerializer): 
+    category = CategorySerializer(read_only=True) 
+    genre = GenreSerializer(many=True, read_only=True) 
+    rating = serializers.FloatField(read_only=True) 
+Рейтинг до целого округляется, поэтому можно использовать IntegerField.
+Надо исправить
+Тимофей Абоносимовревьюер
+ 
+    class Meta: 
+        model = Title 
+        fields = [ 
+            "id", 
+            "name", 
+            "year", 
+            "rating", 
+            "description", 
+            "genre", 
+            "category", 
+        ] 
+ 
+    def get_rating(self, obj): 
+Можно убрать, rating высчитывается через annotate().
+Надо исправить
+Тимофей Абоносимовревьюер
+        rating = obj.reviews.aggregate(Avg("score")).get("score__avg") 
+        if not rating: 
+            return rating 
+        return round(rating, 1) 
+ 
+ 
+class TitleCreateSerializer(serializers.ModelSerializer): 
+Ответ отличается от описанного в спецификации. Должен быть такой:
+
+{
+      "id": 0,
+      "name": "string",
+      "year": 0,
+     "rating": 0,
+      "description": "string",
+     "genre": [
+        {
+          "name": "string",
+          "slug": "string"
+        }
+      ],
+      "category": {
+        "name": "string",
+        "slug": "string"
+      }
+} 
+
+Т.е. жанр и категория выглядят не так, как должны (возвращается список, как на вход). Чтобы работало правильно, можно переопределить метод to_representation().
+Надо исправить
+Тимофей Абоносимовревьюер
+    category = serializers.SlugRelatedField( 
+        queryset=Category.objects.all(), slug_field="slug" 
+    ) 
+    genre = serializers.SlugRelatedField( 
+        queryset=Genre.objects.all(), slug_field="slug", many=True 
+    ) 
+ 
+    class Meta: 
+        fields = "__all__" 
+        model = Title 
+ 
+ 
+class ReviewSerializer(serializers.ModelSerializer): 
+    title = serializers.SlugRelatedField( 
+Если в качестве slug_field используется id, то можно отдельным свойство не объявлять, достаточно упоминания в fields. DRF ожидает передачи id для внешних ключей. (Для юзера нам нужно передавать юзернейм, поэтому необходимо дефолтное поведение переопределить)
+Но это поле в принципе лишнее в ответе. По спецификации ответ должен выглядеть так:
+
+{
+   "id": 0,
+   "text": "string",
+   "author": "string",
+   "score": 1,
+   "pub_date": "2019-08-24T14:15:22Z"
+} 
+
+Надо исправить
+Тимофей Абоносимовревьюер
+        slug_field="id", queryset=Title.objects.all(), required=False 
+    ) 
+    author = SlugRelatedField( 
+        default=serializers.CurrentUserDefault(), 
+        read_only=True, 
+        slug_field="username", 
+    ) 
+ 
+    class Meta: 
+        fields = ( 
+            "id", 
+            "author", 
+            "text", 
+            "title", 
+            "score", 
+            "pub_date", 
+        ) 
+        model = Review 
+ 
+    def validate_score(self, value): 
+Можно добавить валидаторы в модель. С одной стороны, будет надежнее (при добавлении новых эндпоинтов, "забыть" провалидировать не получится), с другой стороны, можно будет из сериализатора эту валидацию убрать - DRF сам сделает. 
+Можно лучше
+Тимофей Абоносимовревьюер
+        if value < 1 or value > 10: 
+            raise serializers.ValidationError( 
+                "Допустимое значение рейтинга от 1 до 10" 
+            ) 
+        return value 
+ 
+    def validate(self, data): 
+        if self.context["request"].method == "POST": 
+            user = self.context["request"].user 
+            title_id = self.context["view"].kwargs.get("title_id") 
+            if Review.objects.filter( 
+                author_id=user.id, title_id=title_id 
+            ).exists(): 
+                raise serializers.ValidationError("Отзыв уже оставлен.") 
+        return data 
+ 
+ 
+class CommentSerializer(serializers.ModelSerializer): 
+    author = SlugRelatedField( 
+        default=serializers.CurrentUserDefault(), 
+        read_only=True, 
+        slug_field="username", 
+    ) 
+ 
+    class Meta: 
+        exclude = ("review",) 
+        model = Comment 
+ 
+api/urls.py
+
+from django.urls import path, include 
+ 
+from rest_framework.routers import DefaultRouter 
+ 
+from .views import UserViewSet, SignUpView, ObtainTokenView 
+ 
+from .views import ( 
+    CategoryViewSet, 
+    GenreViewSet, 
+    TitleViewSet, 
+    CommentViewSet, 
+    ReviewViewSet, 
+) 
+ 
+ 
+routers = DefaultRouter() 
+Т.к. в проекте реализуется 1-я версия API, лучше добавить в имени переменной префикс v_1. Облегчим в будущем переход на 2-ю версию. 
+Надо исправить
+Тимофей Абоносимовревьюер
+routers.register(r"titles", TitleViewSet, basename="TitleSet") 
+routers.register(r"genres", GenreViewSet, basename="GenreSet") 
+routers.register(r"categories", CategoryViewSet, basename="CategorySet") 
+ 
+routers.register(r"users", UserViewSet, basename="UserSet") 
+ 
+routers.register( 
+    r"titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments", 
+    CommentViewSet, 
+    basename="CommentSet", 
+) 
+routers.register( 
+    r"titles/(?P<title_id>\d+)/reviews", ReviewViewSet, basename="ReviewSet" 
+) 
+ 
+ 
+urlpatterns = [ 
+    path("", include(routers.urls)), 
+    path("auth/signup/", SignUpView.as_view(), name="signup"), 
+Пути с префиксом auth лучше вынести в отдельный список, а в urlpatterns использовать инклюд. Они содержат специфическую логику, стоит их логически отделить от остальных роутов.
+Надо исправить
+Тимофей Абоносимовревьюер
+    path("auth/token/", ObtainTokenView.as_view(), name="token"), 
+]
+
+api/views.py
+                 
+from django.core.mail import send_mail 
+from django.db.models import Avg 
+from django.shortcuts import get_object_or_404 
+from rest_framework import status, viewsets, filters 
+from rest_framework.response import Response 
+from rest_framework.views import APIView 
+from rest_framework.decorators import action 
+from django_filters.rest_framework import DjangoFilterBackend 
+from rest_framework.permissions import ( 
+    IsAuthenticatedOrReadOnly, 
+    IsAuthenticated, 
+) 
+from rest_framework.pagination import PageNumberPagination 
+ 
+import random 
+import string 
+from rest_framework_simplejwt.tokens import RefreshToken 
+ 
+from reviews.models import CustomUser, Review 
+from .filters import TitleFilter 
+from .serializers import UserSerializer 
+from .permissions import ( 
+    IsAdminOrReadOnly, 
+    IsAdmin, 
+    IsAuthenticatedOrReadOnly, 
+    IsAuthorOrModeratorOrAdmin, 
+) 
+from reviews.models import Category, Genre, Title, Review 
+from .serializers import ( 
+    CategorySerializer, 
+    GenreSerializer, 
+    TitleSerializer, 
+    TitleCreateSerializer, 
+    CommentSerializer, 
+    ReviewSerializer, 
+) 
+По код стайлу Django импорты должны быть отсортированы следующим образом:
+
+    импорты из стандартной библиотеки
+    импорты из сторонних библиотек
+    импорты из django
+    импорты из текущего проекта
+
+Группы импортов разделяются пустым строками. 
+Можно автоматизировать сортировку импортов с помощью  isort, который рекомендуется в гайде по код стайлу джанго. Для него нужна небольшая настройка , к конфигу из статьи так же добавить параметры  src_paths=api_yamdb (обозначим текущий проект) и multi_line_output=3, чтобы правильно форматировались многострочные импорты. Не придётся делать руками рутинную работу. 
+Надо исправить
+Тимофей Абоносимовревьюер
+ 
+ 
+class ObtainTokenView(APIView): 
+    def post(self, request): 
+        username = request.data.get("username") 
+        confirmation_code = request.data.get("confirmation_code") 
+ 
+        if not all([username, confirmation_code]): 
+Эта логика валидации, стоит её реализовать в стиле DRF - через сериализатор. 
+Надо исправить
+Тимофей Абоносимовревьюер
+            return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST) 
+ 
+        user = get_object_or_404(CustomUser, username=username) 
+ 
+        if user.confirmation_code != confirmation_code: 
+По аналогии с генерацией, для проверки лучше использовать функцию check_token().
+Надо исправить
+Тимофей Абоносимовревьюер
+            return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST) 
+ 
+        refresh = RefreshToken.for_user(user) 
+Здесь нужно использовать класс AccessToken (точно так же). refresh_token пока что в принципе не используется.
+Можно лучше
+Тимофей Абоносимовревьюер
+        access_token = str(refresh.access_token) 
+ 
+        return Response({"token": access_token}, status=status.HTTP_200_OK) 
+ 
+ 
+class SignUpView(APIView): 
+    def post(self, request): 
+        email = request.data.get("email") 
+        username = request.data.get("username") 
+ 
+        if username == "me": 
+Логику валидации следует делать в сериализаторе. 
+Надо исправить
+Тимофей Абоносимовревьюер
+            return Response( 
+                {"detail": 'Username "me" is restricted.'}, 
+                status=status.HTTP_400_BAD_REQUEST, 
+            ) 
+ 
+        if CustomUser.objects.filter(email=email).exists(): 
+Проверку емейла и юзенрейма тоже стоит перенести в сериализатор как часть логики валидации. 
+Надо исправить
+Тимофей Абоносимовревьюер
+            user = CustomUser.objects.get(email=email) 
+            if user.username != username: 
+                return Response( 
+                    { 
+                        "detail": "Email already exists " 
+                                  "with a different username." 
+                    }, 
+                    status=status.HTTP_400_BAD_REQUEST, 
+                ) 
+            else: 
+                confirmation_code = "".join( 
+                    random.choices(string.ascii_letters + string.digits, k=10) 
+                ) 
+                user.confirmation_code = confirmation_code 
+                user.save() 
+                send_mail( 
+                    "Подтверждение регистрации", 
+                    f"Ваш код подтверждения: {confirmation_code}", 
+                    "noreply@yamdb.com", 
+                    [user.email], 
+                    fail_silently=False, 
+                ) 
+                data = {"email": email, "username": user.username} 
+                return Response(data, status=status.HTTP_200_OK) 
+ 
+        if CustomUser.objects.filter(username=username).exists(): 
+            return Response( 
+                {"detail": "Username already exists."}, 
+                status=status.HTTP_400_BAD_REQUEST, 
+            ) 
+ 
+        serializer = UserSerializer(data=request.data) 
+        if serializer.is_valid(): 
+            confirmation_code = "".join( 
+                random.choices(string.ascii_letters + string.digits, k=10) 
+            ) 
+            user = serializer.save( 
+                role=CustomUser.USER, confirmation_code=confirmation_code 
+            ) 
+ 
+            send_mail( 
+                "Подтверждение регистрации", 
+                f"Ваш код подтверждения: {confirmation_code}", 
+                "noreply@yamdb.com", 
+                [user.email], 
+                fail_silently=False, 
+            ) 
+ 
+            data = { 
+                "email": serializer.data["email"], 
+                "username": serializer.data["username"], 
+            } 
+            return Response(data, status=status.HTTP_200_OK) 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+ 
+ 
+class UserViewSet(viewsets.ModelViewSet): 
+    queryset = CustomUser.objects.all() 
+    serializer_class = UserSerializer 
+    permission_classes = [IsAdmin] 
+    filter_backends = [filters.SearchFilter] 
+    search_fields = ["username"] 
+    lookup_field = "username" 
+ 
+    @action( 
+        detail=False, 
+        methods=["get", "patch"], 
+        permission_classes=[IsAuthenticated], 
+    ) 
+    def me(self, request): 
+        if "role" in request.data: 
+            return Response( 
+                {"detail": "Changing role is not allowed."}, 
+                status=status.HTTP_400_BAD_REQUEST, 
+            ) 
+ 
+        if request.method == "GET": 
+            serializer = self.get_serializer(request.user) 
+            return Response(serializer.data) 
+        elif request.method == "PATCH": 
+            serializer = self.get_serializer( 
+                request.user, data=request.data, partial=True 
+            ) 
+            if serializer.is_valid(): 
+                serializer.save() 
+                return Response(serializer.data) 
+            return Response( 
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST 
+            ) 
+ 
+    def create(self, request, *args, **kwargs): 
+Остальные методы содержат стандартную логику вьюсета, можно их убрать (кроме update()).
+Надо исправить
+Тимофей Абоносимовревьюер
+        email = request.data.get("email") 
+        username = request.data.get("username") 
+ 
+        if CustomUser.objects.filter(email=email).exists(): 
+            return Response( 
+                {"detail": "Email already exists."}, 
+                status=status.HTTP_400_BAD_REQUEST, 
+            ) 
+ 
+        if CustomUser.objects.filter(username=username).exists(): 
+            return Response( 
+                {"detail": "Username already exists."}, 
+                status=status.HTTP_400_BAD_REQUEST, 
+            ) 
+ 
+        return super(UserViewSet, self).create(request, *args, **kwargs) 
+В Пайтон 3 super() можно вызывать без передачи аргументов, если не требуется какое-то специфическое поведение (т.е. в 99% случае аргументы не нужны). 
+(Но здесь метод целиком не нужен)
+Надо исправить
+Тимофей Абоносимовревьюер
+ 
+    def update(self, request, *args, **kwargs): 
+        return Response( 
+            {"detail": "Method not allowed."}, 
+            status=status.HTTP_405_METHOD_NOT_ALLOWED, 
+        ) 
+ 
+    def partial_update(self, request, *args, **kwargs): 
+        instance = self.get_object() 
+        serializer = self.get_serializer( 
+            instance, data=request.data, partial=True 
+        ) 
+        serializer.is_valid(raise_exception=True) 
+        self.perform_update(serializer) 
+        return Response(serializer.data) 
+ 
+    def destroy(self, request, *args, **kwargs): 
+        instance = self.get_object() 
+        self.perform_destroy(instance) 
+        return Response(status=status.HTTP_204_NO_CONTENT) 
+ 
+ 
+class CategoryViewSet(viewsets.ModelViewSet): 
+    queryset = Category.objects.all() 
+    serializer_class = CategorySerializer 
+    filter_backends = (filters.SearchFilter,) 
+    search_fields = ("name",) 
+    permission_classes = [IsAdminOrReadOnly] 
+ 
+    @action( 
+Удаление - одно из действий, реализованных в ModelViewSet, переопределять нет необходимости. 
+Надо исправить
+Тимофей Абоносимовревьюер
+        detail=False, 
+        methods=["delete"], 
+        url_path=r"(?P<slug>\w+)", 
+        lookup_field="slug", 
+        url_name="category_slug", 
+    ) 
+    def get_category(self, request, slug): 
+        category = self.get_object() 
+        serializer = CategorySerializer(category) 
+        category.delete() 
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT) 
+ 
+ 
+class GenreViewSet(viewsets.ModelViewSet): 
+    queryset = Genre.objects.all() 
+    serializer_class = GenreSerializer 
+    lookup_field = "slug" 
+    filter_backends = (filters.SearchFilter,) 
+    search_fields = ("name",) 
+    permission_classes = [IsAdminOrReadOnly] 
+ 
+    @action( 
+И здесь. 
+Надо исправить
+Тимофей Абоносимовревьюер
+        detail=False, 
+        methods=["delete"], 
+        url_path=r"(?P<slug>\w+)", 
+        lookup_field="slug", 
+        url_name="genre_slug", 
+    ) 
+    def get_genre(self, request, slug): 
+        genre = self.get_object() 
+        serializer = GenreSerializer(genre) 
+        genre.delete() 
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT) 
+ 
+ 
+class TitleViewSet(viewsets.ModelViewSet): 
+    queryset = Title.objects.annotate(rating=Avg("reviews__score")).order_by( 
+        "rating" 
+    ) 
+    permission_classes = [IsAdminOrReadOnly] 
+    filter_backends = [DjangoFilterBackend] 
+    filterset_class = TitleFilter 
+    http_method_names = ['get', 'post', 'patch', 'delete'] 
+Не задокументированный в DRF способ ограничить доступные методы запроса, унаследованный из Django. В DRF принято ограничивать методы через наследование. 
+Можно лучше
+Тимофей Абоносимовревьюер
+ 
+    def get_serializer_class(self): 
+        if self.action in ("list", "retrieve"): 
+            return TitleSerializer 
+        return TitleCreateSerializer 
+ 
+    def perform_update(self, serializer): 
+        self.perform_create(serializer) 
+ 
+ 
+class ReviewViewSet(viewsets.ModelViewSet): 
+    serializer_class = ReviewSerializer 
+    pagination_class = PageNumberPagination 
+Пагинация установлена глобально в settings.py (в словарике REST_FRAMEWORK). Если не нужно переопределять класс для пагинации, то можно свойство не объявлять. 
+Надо исправить
+Тимофей Абоносимовревьюер
+    http_method_names = ['get', 'post', 'patch', 'delete'] 
+ 
+    def get_queryset(self): 
+        title_id = int(self.kwargs.get("title_id")) 
+        title = get_object_or_404(Title, pk=title_id) 
+        return title.reviews.all() 
+ 
+    def get_permissions(self): 
+Свойство permission_classes представляет собой список, в котором мы можем сразу перечислить все необходимые классы пермишенов. Нужно помнить, что метод has_permission() вызывается для всех запросов, а has_object_permission() только для запросов, во флоу которых есть вызов get_object() (при этом has_object_permission() будет вызван, только если has_permission() вернёт True). 
+Надо исправить
+Тимофей Абоносимовревьюер
+        if self.action not in ["update", "partial_update", "destroy"]: 
+            self.permission_classes = [IsAuthenticatedOrReadOnly] 
+            return super(ReviewViewSet, self).get_permissions() 
+        self.permission_classes = [IsAuthorOrModeratorOrAdmin] 
+        return super(ReviewViewSet, self).get_permissions() 
+ 
+    def perform_create(self, serializer): 
+        title_id = self.kwargs.get("title_id") 
+        title_exists = get_object_or_404(Title, id=title_id) 
+        if not title_exists: 
+Эта лишняя проверка. Если наименования не существует, то вернём 404 (в предыдущей строке просим Django именно так сделать). not title_exists всегда будет равен False. 
+Если бы делали что-то типа Title.objects.filter(id=title_id).first(), то проверка бы имела смысл, потому что в этом случае действительно может вернуться None (но это не по ТЗ, нужно возвращать не ошибку валидации, а 404, поэтому можно убрать этот код).
+Надо исправить
+Тимофей Абоносимовревьюер
+            serializer._errors = { 
+                "title_id": ["Title with the given ID does not exist."] 
+            } 
+        else: 
+            serializer.save(author=self.request.user, title_id=title_id) 
+ 
+ 
+class CommentViewSet(viewsets.ModelViewSet): 
+    serializer_class = CommentSerializer 
+    pagination_class = PageNumberPagination 
+    http_method_names = ['get', 'post', 'patch', 'delete'] 
+ 
+    def get_queryset(self): 
+        review_id = int(self.kwargs.get("review_id")) 
+Лишнее приведение к числу, DRF/Django это сами делают.
+Надо исправить
+Тимофей Абоносимовревьюер
+        review = get_object_or_404(Review, id=review_id) 
+        return review.comments.all() 
+ 
+    def get_permissions(self): 
+Как и в ReviewViewSet, пермишены достаточно перечислить в списке. Главное, правильно распределить ограничения по методам самих классов пермишенов. 
+Надо исправить
+Тимофей Абоносимовревьюер
+        if self.action not in ["update", "partial_update", "destroy"]: 
+            self.permission_classes = [IsAuthenticatedOrReadOnly] 
+            return super(CommentViewSet, self).get_permissions() 
+        self.permission_classes = [IsAuthorOrModeratorOrAdmin] 
+        return super(CommentViewSet, self).get_permissions() 
+ 
+    def perform_create(self, serializer): 
+        review_id = int(self.kwargs.get("review_id")) 
+        review = get_object_or_404(Review, id=review_id) 
+Параметры title_id и review_id передаются как части маршрута, и подразумевается, что рецензия с переданным айди относится к наименованию с переданным айди. Но что мешает передать айди не соотносящейся с наименованием, но существующей, рецензии? Нужно это проверить, прежде чем сохранять: достаточно добавить аргумент с айди наименования в get_object_or_404().
+Надо исправить
+Тимофей Абоносимовревьюер
+        user = self.request.user 
+        serializer.save(author=user, review=review)
