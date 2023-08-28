@@ -2,6 +2,7 @@ import random
 import string
 
 from django.core.mail import send_mail
+from django.core.validators import RegexValidator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
@@ -37,7 +38,6 @@ class ObtainTokenSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid confirmation code.")
 
         return data
-
 
 
 class UserSerializer(serializers.ModelSerializer):

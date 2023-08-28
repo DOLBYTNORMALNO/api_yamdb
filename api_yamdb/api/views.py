@@ -151,24 +151,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
 
-    def create(self, request, *args, **kwargs):
-        email = request.data.get("email")
-        username = request.data.get("username")
-
-        if CustomUser.objects.filter(email=email).exists():
-            return Response(
-                {"detail": "Email already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if CustomUser.objects.filter(username=username).exists():
-            return Response(
-                {"detail": "Username already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return super(UserViewSet, self).create(request, *args, **kwargs)
-
     def update(self, request, *args, **kwargs):
         return Response(
             {"detail": "Method not allowed."},
@@ -184,10 +166,29 @@ class UserViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
 
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def create(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        username = request.data.get("username")
+
+        if not email or not username:
+            return Response(
+                {"detail": "Email and username are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if CustomUser.objects.filter(email=email).exists():
+            return Response(
+                {"detail": "Email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if CustomUser.objects.filter(username=username).exists():
+            return Response(
+                {"detail": "Username already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().create(request, *args, **kwargs)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
