@@ -18,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from reviews.models import CustomUser, Review
 from .filters import TitleFilter
-from .serializers import UserSerializer
+from .serializers import UserSerializer, ObtainTokenSerializer
 from .permissions import (
     IsAdminOrReadOnly,
     IsAdmin,
@@ -38,21 +38,15 @@ from .serializers import (
 
 class ObtainTokenView(APIView):
     def post(self, request):
-        username = request.data.get("username")
-        confirmation_code = request.data.get("confirmation_code")
+        serializer = ObtainTokenSerializer(data=request.data)
 
-        if not all([username, confirmation_code]):
-            return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST)
+        if serializer.is_valid():
+            user = CustomUser.objects.get(username=serializer.validated_data['username'])
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            return Response({"token": access_token}, status=status.HTTP_200_OK)
 
-        user = get_object_or_404(CustomUser, username=username)
-
-        if user.confirmation_code != confirmation_code:
-            return Response("vse ploho", status=status.HTTP_400_BAD_REQUEST)
-
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-
-        return Response({"token": access_token}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SignUpView(APIView):

@@ -20,6 +20,26 @@ from rest_framework.relations import SlugRelatedField
 from django.contrib.auth.tokens import default_token_generator
 
 
+class ObtainTokenSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    confirmation_code = serializers.CharField(required=True)
+
+    def validate(self, data):
+        username = data.get('username')
+        confirmation_code = data.get('confirmation_code')
+
+        if not all([username, confirmation_code]):
+            raise serializers.ValidationError("Both username and confirmation code are required.")
+
+        user = get_object_or_404(CustomUser, username=username)
+
+        if user.confirmation_code != confirmation_code:
+            raise serializers.ValidationError("Invalid confirmation code.")
+
+        return data
+
+
+
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=254, required=True)
     role = serializers.ChoiceField(
