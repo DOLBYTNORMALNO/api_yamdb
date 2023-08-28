@@ -114,9 +114,6 @@ class TitleCreateSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    title = serializers.SlugRelatedField(
-        slug_field="id", queryset=Title.objects.all(), required=False
-    )
     author = SlugRelatedField(
         default=serializers.CurrentUserDefault(),
         read_only=True,
@@ -126,9 +123,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         fields = (
             "id",
-            "author",
             "text",
-            "title",
+            "author",
             "score",
             "pub_date",
         )
