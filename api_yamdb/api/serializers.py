@@ -1,27 +1,27 @@
+import random
+import string
+
+from django.core.mail import send_mail
 from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from reviews.models import (
     CustomUser,
     Title,
     Category,
     Genre,
+    GenreTitle,
     Review,
     Comment,
 )
-import random
-import string
+
 from rest_framework.relations import SlugRelatedField
-from django.core.validators import RegexValidator
+
+from django.contrib.auth.tokens import default_token_generator
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        max_length=150,
-        validators=[RegexValidator(r"^[\w.@+-]+\Z")],
-        required=True,
-        allow_blank=False,
-    )
-
+    email = serializers.EmailField(max_length=254, required=True)
     role = serializers.ChoiceField(
         choices=CustomUser.ROLE_CHOICES, default=CustomUser.USER
     )
@@ -36,26 +36,10 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "bio",
         )
-        extra_kwargs = {
-            "username": {
-                "max_length": 150,
-                "required": True,
-                "allow_blank": False,
-            },
-            "email": {
-                "max_length": 254,
-                "required": True,
-                "allow_blank": False,
-            },
-            "role": {"read_only": True},
-        }
 
     def create(self, validated_data):
-        confirmation_code = "".join(
-            random.choices(string.ascii_letters + string.digits, k=10)
-        )
-
         user = super().create(validated_data)
+        confirmation_code = default_token_generator.make_token(user)
         user.confirmation_code = confirmation_code
         user.save()
 
@@ -146,7 +130,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             user = self.context["request"].user
             title_id = self.context["view"].kwargs.get("title_id")
             if Review.objects.filter(
-                author_id=user.id, title_id=title_id
+                    author_id=user.id, title_id=title_id
             ).exists():
                 raise serializers.ValidationError("Отзыв уже оставлен.")
         return data
