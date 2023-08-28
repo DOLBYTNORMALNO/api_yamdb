@@ -16,7 +16,7 @@ import random
 import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from reviews.models import CustomUser, Review
+
 from .filters import TitleFilter
 from .serializers import UserSerializer, ObtainTokenSerializer
 from .permissions import (
@@ -26,6 +26,7 @@ from .permissions import (
     IsAuthorOrModeratorOrAdmin,
 )
 from reviews.models import Category, Genre, Title, Review
+from users.models import CustomUser
 from .serializers import (
     CategorySerializer,
     GenreSerializer,
