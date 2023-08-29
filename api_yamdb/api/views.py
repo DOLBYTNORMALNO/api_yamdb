@@ -165,6 +165,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
     search_fields = ("name",)
     permission_classes = [IsAdminOrReadOnly]
 
+
+    """удалял, но тесты падают"""
     @action(
         detail=False,
         methods=["delete"],
