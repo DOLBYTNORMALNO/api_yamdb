@@ -232,19 +232,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action not in ["update", "partial_update", "destroy"]:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
-            return super(ReviewViewSet, self).get_permissions()
-        self.permission_classes = [IsAuthorOrModeratorOrAdmin]
+        else:
+            self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         return super(ReviewViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
         title_id = self.kwargs.get("title_id")
-        title_exists = get_object_or_404(Title, id=title_id)
-        if not title_exists:
-            serializer._errors = {
-                "title_id": ["Title with the given ID does not exist."]
-            }
-        else:
-            serializer.save(author=self.request.user, title_id=title_id)
+        get_object_or_404(Title, id=title_id)
+        serializer.save(author=self.request.user, title_id=title_id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -253,19 +248,20 @@ class CommentViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
-        review_id = int(self.kwargs.get("review_id"))
+        review_id = self.kwargs.get("review_id")
         review = get_object_or_404(Review, id=review_id)
         return review.comments.all()
 
     def get_permissions(self):
         if self.action not in ["update", "partial_update", "destroy"]:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
-            return super(CommentViewSet, self).get_permissions()
-        self.permission_classes = [IsAuthorOrModeratorOrAdmin]
+        else:
+            self.permission_classes = [IsAuthorOrModeratorOrAdmin]
         return super(CommentViewSet, self).get_permissions()
 
     def perform_create(self, serializer):
-        review_id = int(self.kwargs.get("review_id"))
-        review = get_object_or_404(Review, id=review_id)
+        review_id = self.kwargs.get("review_id")
+        title_id = self.kwargs.get("title_id")
+        review = get_object_or_404(Review, id=review_id, title_id=title_id)
         user = self.request.user
         serializer.save(author=user, review=review)
