@@ -71,11 +71,17 @@ class Review(models.Model):
         verbose_name="Author",
     )
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE, related_name="reviews", null=False, verbose_name="Title"
+        Title, on_delete=models.CASCADE,
+        related_name="reviews",
+        null=False,
+        verbose_name="Title"
     )
     text = models.TextField(verbose_name="Text")
     score = models.IntegerField(choices=CHOICES_SCORE, verbose_name="Score")
-    pub_date = models.DateTimeField(auto_now_add=True, verbose_name="Publication Date")
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Publication Date"
+    )
 
     class Meta:
         constraints = (
@@ -93,13 +99,20 @@ class Review(models.Model):
 
 class Comment(models.Model):
     author = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="comments", verbose_name="Author"
+        CustomUser, on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name="Author"
     )
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE, related_name="comments", verbose_name="Review"
+        Review, on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name="Review"
     )
     text = models.TextField(verbose_name="Text")
-    pub_date = models.DateTimeField(auto_now_add=True, verbose_name="Publication Date")
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Publication Date"
+    )
 
     class Meta:
         verbose_name = "comment"
