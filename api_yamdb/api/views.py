@@ -42,7 +42,9 @@ class ObtainTokenView(APIView):
         serializer = ObtainTokenSerializer(data=request.data)
 
         if serializer.is_valid():
-            user = CustomUser.objects.get(username=serializer.validated_data['username'])
+            user = CustomUser.objects.get(
+                username=serializer.validated_data['username']
+            )
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             return Response({"token": access_token}, status=status.HTTP_200_OK)
@@ -165,8 +167,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     search_fields = ("name",)
     permission_classes = [IsAdminOrReadOnly]
 
-
-    """удалял, но тесты падают"""
     @action(
         detail=False,
         methods=["delete"],

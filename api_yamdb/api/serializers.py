@@ -1,5 +1,3 @@
-
-from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from users.models import CustomUser
@@ -7,7 +5,6 @@ from reviews.models import (
     Title,
     Category,
     Genre,
-    GenreTitle,
     Review,
     Comment,
 )
@@ -27,7 +24,9 @@ class ObtainTokenSerializer(serializers.Serializer):
         confirmation_code = data.get('confirmation_code')
 
         if not all([username, confirmation_code]):
-            raise serializers.ValidationError("Both username and confirmation code are required.")
+            raise serializers.ValidationError(
+                "Both username and confirmation code are required."
+            )
 
         user = get_object_or_404(CustomUser, username=username)
 
