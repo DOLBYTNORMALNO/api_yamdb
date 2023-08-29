@@ -15,6 +15,7 @@ from reviews.models import (
 from rest_framework.relations import SlugRelatedField
 
 from django.contrib.auth.tokens import default_token_generator
+from django.core.validators import RegexValidator
 
 
 class ObtainTokenSerializer(serializers.Serializer):
@@ -34,6 +35,35 @@ class ObtainTokenSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid confirmation code.")
 
         return data
+
+
+class SignUpSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    username = serializers.CharField(
+        max_length=150,
+        validators=[RegexValidator(r'^[\w.@+-]+\Z')]
+    )
+
+    def validate_username(self, value):
+        if value == "me":
+            raise serializers.ValidationError('Username "me" is restricted.')
+
+        if CustomUser.objects.filter(username=value).exists():
+            user = CustomUser.objects.get(username=value)
+            if user.email != self.initial_data.get("email"):
+                raise serializers.ValidationError(
+                    "Username already exists with a different email."
+                )
+        return value
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            user = CustomUser.objects.get(email=value)
+            if user.username != self.initial_data.get("username"):
+                raise serializers.ValidationError(
+                    "Email already exists with a different username."
+                )
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -7,18 +7,14 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import (
-    IsAuthenticatedOrReadOnly,
     IsAuthenticated,
 )
 from rest_framework.pagination import PageNumberPagination
 
-import random
-import string
 from rest_framework_simplejwt.tokens import RefreshToken
 
-
 from .filters import TitleFilter
-from .serializers import UserSerializer, ObtainTokenSerializer
+
 from .permissions import (
     IsAdminOrReadOnly,
     IsAdmin,
@@ -34,7 +30,11 @@ from .serializers import (
     TitleCreateSerializer,
     CommentSerializer,
     ReviewSerializer,
+    UserSerializer,
+    ObtainTokenSerializer,
+    SignUpSerializer
 )
+from django.contrib.auth.tokens import default_token_generator
 
 
 class ObtainTokenView(APIView):
@@ -52,69 +52,35 @@ class ObtainTokenView(APIView):
 
 class SignUpView(APIView):
     def post(self, request):
-        email = request.data.get("email")
-        username = request.data.get("username")
-
-        if username == "me":
-            return Response(
-                {"detail": 'Username "me" is restricted.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if CustomUser.objects.filter(email=email).exists():
-            user = CustomUser.objects.get(email=email)
-            if user.username != username:
-                return Response(
-                    {
-                        "detail": "Email already exists "
-                                  "with a different username."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                confirmation_code = "".join(
-                    random.choices(string.ascii_letters + string.digits, k=10)
-                )
-                user.confirmation_code = confirmation_code
-                user.save()
-                send_mail(
-                    "Подтверждение регистрации",
-                    f"Ваш код подтверждения: {confirmation_code}",
-                    "noreply@yamdb.com",
-                    [user.email],
-                    fail_silently=False,
-                )
-                data = {"email": email, "username": user.username}
-                return Response(data, status=status.HTTP_200_OK)
-
-        if CustomUser.objects.filter(username=username).exists():
-            return Response(
-                {"detail": "Username already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer = UserSerializer(data=request.data)
+        serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
-            confirmation_code = "".join(
-                random.choices(string.ascii_letters + string.digits, k=10)
+            email = serializer.validated_data.get("email")
+            username = serializer.validated_data.get("username")
+
+            user, created = CustomUser.objects.get_or_create(
+                email=email,
+                defaults={
+                    "username": username,
+                    "role": CustomUser.USER,
+                },
             )
-            user = serializer.save(
-                role=CustomUser.USER, confirmation_code=confirmation_code
-            )
+
+            token = default_token_generator.make_token(user)
+
+            if not created:
+                user.save()
 
             send_mail(
                 "Подтверждение регистрации",
-                f"Ваш код подтверждения: {confirmation_code}",
+                f"Ваш код подтверждения: {token}",
                 "noreply@yamdb.com",
                 [user.email],
                 fail_silently=False,
             )
 
-            data = {
-                "email": serializer.data["email"],
-                "username": serializer.data["username"],
-            }
+            data = {"email": email, "username": username}
             return Response(data, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
