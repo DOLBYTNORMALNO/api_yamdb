@@ -12,9 +12,23 @@ class CustomUser(AbstractUser):
         (ADMIN, "Admin"),
     ]
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=USER, verbose_name="Role")
-    confirmation_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Confirmation Code")
-    bio = models.TextField(blank=True, null=True, verbose_name="Bio")
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        default=USER,
+        verbose_name="Role"
+    )
+    confirmation_code = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="Confirmation Code"
+    )
+    bio = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Bio"
+    )
 
     @property
     def is_admin(self):
