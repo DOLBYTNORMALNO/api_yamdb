@@ -32,12 +32,12 @@ v_1_router.register(
     basename="UserSet"
 )
 v_1_router.register(
-    "titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments",
+    r"titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments",
     CommentViewSet,
     basename="CommentSet",
 )
 v_1_router.register(
-    "titles/(?P<title_id>\d+)/reviews",
+    r"titles/(?P<title_id>\d+)/reviews",
     ReviewViewSet,
     basename="ReviewSet"
 )

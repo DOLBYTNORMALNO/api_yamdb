@@ -96,7 +96,6 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         exclude = ["id"]
