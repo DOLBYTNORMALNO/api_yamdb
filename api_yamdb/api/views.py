@@ -40,50 +40,45 @@ from django.contrib.auth.tokens import default_token_generator
 class ObtainTokenView(APIView):
     def post(self, request):
         serializer = ObtainTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if serializer.is_valid():
-            user = CustomUser.objects.get(
-                username=serializer.validated_data['username']
-            )
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            return Response({"token": access_token}, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = CustomUser.objects.get(username=serializer.validated_data['username'])
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        return Response({"token": access_token}, status=status.HTTP_200_OK)
 
 
 class SignUpView(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data.get("email")
-            username = serializer.validated_data.get("username")
+        serializer.is_valid(raise_exception=True)
 
-            user, created = CustomUser.objects.get_or_create(
-                email=email,
-                defaults={
-                    "username": username,
-                    "role": CustomUser.USER,
-                },
-            )
+        email = serializer.validated_data.get("email")
+        username = serializer.validated_data.get("username")
 
-            token = default_token_generator.make_token(user)
+        user, created = CustomUser.objects.get_or_create(
+            email=email,
+            defaults={
+                "username": username,
+                "role": CustomUser.USER,
+            },
+        )
 
-            if not created:
-                user.save()
+        token = default_token_generator.make_token(user)
 
-            send_mail(
-                "Подтверждение регистрации",
-                f"Ваш код подтверждения: {token}",
-                "noreply@yamdb.com",
-                [user.email],
-                fail_silently=False,
-            )
+        if not created:
+            user.save()
 
-            data = {"email": email, "username": username}
-            return Response(data, status=status.HTTP_200_OK)
+        send_mail(
+            "Подтверждение регистрации",
+            f"Ваш код подтверждения: {token}",
+            "noreply@yamdb.com",
+            [user.email],
+            fail_silently=False,
+        )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = {"email": email, "username": username}
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -113,12 +108,9 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(
                 request.user, data=request.data, partial=True
             )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
         return Response(
@@ -134,30 +126,6 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
-
-    def create(self, request, *args, **kwargs):
-        email = request.data.get("email")
-        username = request.data.get("username")
-
-        if not email or not username:
-            return Response(
-                {"detail": "Email and username are required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if CustomUser.objects.filter(email=email).exists():
-            return Response(
-                {"detail": "Email already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if CustomUser.objects.filter(username=username).exists():
-            return Response(
-                {"detail": "Username already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return super().create(request, *args, **kwargs)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

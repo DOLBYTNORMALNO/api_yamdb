@@ -82,6 +82,11 @@ class UserSerializer(serializers.ModelSerializer):
             "bio",
         )
 
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists.")
+        return value
+
     def create(self, validated_data):
         user = super().create(validated_data)
         confirmation_code = default_token_generator.make_token(user)
@@ -89,6 +94,7 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
 
         return user
+
 
 
 class CategorySerializer(serializers.ModelSerializer):

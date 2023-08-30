@@ -11,17 +11,35 @@ from .views import (
 
 v_1_router = DefaultRouter()
 
-v_1_router.register(r"titles", TitleViewSet, basename="TitleSet")
-v_1_router.register(r"genres", GenreViewSet, basename="GenreSet")
-v_1_router.register(r"categories", CategoryViewSet, basename="CategorySet")
-v_1_router.register(r"users", UserViewSet, basename="UserSet")
 v_1_router.register(
-    r"titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments",
+    "titles",
+    TitleViewSet,
+    basename="TitleSet"
+)
+v_1_router.register(
+    "genres",
+    GenreViewSet,
+    basename="GenreSet"
+)
+v_1_router.register(
+    "categories",
+    CategoryViewSet,
+    basename="CategorySet"
+)
+v_1_router.register(
+    "users",
+    UserViewSet,
+    basename="UserSet"
+)
+v_1_router.register(
+    "titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments",
     CommentViewSet,
     basename="CommentSet",
 )
 v_1_router.register(
-    r"titles/(?P<title_id>\d+)/reviews", ReviewViewSet, basename="ReviewSet"
+    "titles/(?P<title_id>\d+)/reviews",
+    ReviewViewSet,
+    basename="ReviewSet"
 )
 
 auth_patterns = [
