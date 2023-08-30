@@ -82,7 +82,7 @@ class SignUpView(APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = CustomUser.objects.all().order_by('username')
     serializer_class = UserSerializer
     permission_classes = [IsAdmin]
     filter_backends = [filters.SearchFilter]
@@ -129,7 +129,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ("name",)
@@ -150,7 +150,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 
 class GenreViewSet(viewsets.ModelViewSet):
-    queryset = Genre.objects.all()
+    queryset = Genre.objects.all().order_by('name')
     serializer_class = GenreSerializer
     lookup_field = "slug"
     filter_backends = (filters.SearchFilter,)
@@ -185,9 +185,6 @@ class TitleViewSet(viewsets.ModelViewSet):
             return TitleSerializer
         return TitleCreateSerializer
 
-    def perform_update(self, serializer):
-        self.perform_create(serializer)
-
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
@@ -197,7 +194,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         title_id = int(self.kwargs.get("title_id"))
         title = get_object_or_404(Title, pk=title_id)
-        return title.reviews.all()
+        return title.reviews.all().order_by('pub_date')
 
     def get_permissions(self):
         if self.action not in ["update", "partial_update", "destroy"]:
@@ -214,20 +211,20 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    pagination_class = PageNumberPagination
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
         review_id = self.kwargs.get("review_id")
-        review = get_object_or_404(Review, id=review_id)
-        return review.comments.all()
+        title_id = self.kwargs.get("title_id")
+        review = get_object_or_404(Review, id=review_id, title_id=title_id)
+        return review.comments.all().order_by('pub_date')
 
     def get_permissions(self):
         if self.action not in ["update", "partial_update", "destroy"]:
             self.permission_classes = [IsAuthenticatedOrReadOnly]
         else:
             self.permission_classes = [IsAuthorOrModeratorOrAdmin]
-        return super(CommentViewSet, self).get_permissions()
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         review_id = self.kwargs.get("review_id")
