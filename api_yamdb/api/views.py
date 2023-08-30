@@ -1,20 +1,20 @@
-from django.core.mail import send_mail
-from django.db.models import Avg
-from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import (
-    IsAuthenticated,
-)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
-
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .filters import TitleFilter
+from django.contrib.auth.tokens import default_token_generator
+from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_object_or_404
+from django.db.models import Avg
+from django.core.mail import send_mail
 
+
+from .mixins import ListCreateDestroyViewSet
+from .filters import TitleFilter
 from .permissions import (
     IsAdminOrReadOnly,
     IsAdmin,
@@ -34,7 +34,6 @@ from .serializers import (
     ObtainTokenSerializer,
     SignUpSerializer
 )
-from django.contrib.auth.tokens import default_token_generator
 
 
 class ObtainTokenView(APIView):
@@ -128,47 +127,14 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all().order_by('name')
+class CategoryViewSet(ListCreateDestroyViewSet):
+    queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ("name",)
-    permission_classes = [IsAdminOrReadOnly]
-
-    @action(
-        detail=False,
-        methods=["delete"],
-        url_path=r"(?P<slug>\w+)",
-        lookup_field="slug",
-        url_name="category_slug",
-    )
-    def get_category(self, request, slug):
-        category = self.get_object()
-        serializer = CategorySerializer(category)
-        category.delete()
-        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
 
-class GenreViewSet(viewsets.ModelViewSet):
-    queryset = Genre.objects.all().order_by('name')
+class GenreViewSet(ListCreateDestroyViewSet):
+    queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    lookup_field = "slug"
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ("name",)
-    permission_classes = [IsAdminOrReadOnly]
-
-    @action(
-        detail=False,
-        methods=["delete"],
-        url_path=r"(?P<slug>\w+)",
-        lookup_field="slug",
-        url_name="genre_slug",
-    )
-    def get_genre(self, request, slug):
-        genre = self.get_object()
-        serializer = GenreSerializer(genre)
-        genre.delete()
-        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
