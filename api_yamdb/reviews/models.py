@@ -24,6 +24,8 @@ class Genre(models.Model):
     class Meta:
         verbose_name = "genre"
         verbose_name_plural = "genres"
+        ordering = ['name']
+
 
     def __str__(self):
         return f"{self.name}"

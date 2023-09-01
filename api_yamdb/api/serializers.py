@@ -1,5 +1,10 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.relations import SlugRelatedField
+
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.tokens import default_token_generator
+from django.core.validators import RegexValidator
+
 from users.models import CustomUser
 from reviews.models import (
     Title,
@@ -8,11 +13,6 @@ from reviews.models import (
     Review,
     Comment,
 )
-
-from rest_framework.relations import SlugRelatedField
-
-from django.contrib.auth.tokens import default_token_generator
-from django.core.validators import RegexValidator
 
 
 class ObtainTokenSerializer(serializers.Serializer):
